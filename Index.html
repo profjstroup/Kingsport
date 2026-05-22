@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kingsport Engagement</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0D1F1F;font-family:'Courier New',monospace;color:#E8E0D0;min-height:100vh;overflow-x:hidden;font-size:14px;line-height:1.85;}
+#app{max-width:900px;margin:0 auto;padding:24px 20px;}
+.hidden{display:none!important;}
+#header{border-bottom:2px solid #B8A46A;padding-bottom:16px;margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+#header-logo{font-size:13px;letter-spacing:4px;color:#B8A46A;text-transform:uppercase;margin-bottom:2px;}
+#header-sub{font-size:11px;letter-spacing:2px;color:#9AADA8;text-transform:uppercase;}
+#module-label{font-size:11px;letter-spacing:2px;color:#9AADA8;text-transform:uppercase;margin-bottom:2px;text-align:right;}
+#module-title{font-size:12px;letter-spacing:1px;color:#B8A46A;text-align:right;}
+#mute-btn{position:fixed;top:14px;right:16px;background:#0D1F1F;border:1px solid #1E3A3A;color:#3D4A4A;font-size:16px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:100;line-height:1;}
+#mute-btn:hover{border-color:#B8A46A;color:#B8A46A;}
+#mute-btn.muted{border-color:#7A3B1E;color:#7A3B1E;}
+#resource-bars{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+.res-bar-group{flex:1;min-width:200px;}
+.res-label{font-size:11px;letter-spacing:2px;color:#9AADA8;text-transform:uppercase;margin-bottom:4px;display:flex;justify-content:space-between;}
+.res-label span{color:#B8A46A;}
+.res-track{height:12px;background:#0D1F1F;border:1px solid #1E3A3A;}
+.res-fill{height:100%;transition:width 0.3s;}
+#money-fill{background:#B8A46A;}
+#time-fill{background:#7A3B1E;}
+.res-fill.warning{background:#8A4A3A!important;}
+.narrator-text{color:#9AADA8;font-style:italic;font-size:13px;line-height:1.9;border-left:2px solid #3D4A4A;padding-left:14px;margin:14px 0;}
+.narrator-text.kp{border-left-color:#4A6A58;}
+.dlg{border:2px solid #B8A46A;margin-bottom:20px;background:#0D1F1F;}
+.dlg.kp{border-color:#7A3B1E;background:#1A2A22;}
+.dlg-hdr{background:#1E3A3A;padding:7px 14px 5px;display:flex;justify-content:space-between;align-items:baseline;}
+.dlg.kp .dlg-hdr{background:#2C3E35;border-bottom:1px solid #3D5247;}
+.dlg-name{font-size:12px;letter-spacing:2px;color:#B8A46A;font-weight:bold;}
+.dlg.kp .dlg-name{color:#F2EDE4;}
+.dlg-ttl{font-size:11px;color:#9AADA8;letter-spacing:1px;}
+.dlg-row{display:flex;border-bottom:1px solid #1E3A3A;}
+.dlg.kp .dlg-row{border-bottom-color:#3D5247;}
+.dlg-portrait{flex-shrink:0;padding:8px;}
+.dlg-portrait canvas{display:block;image-rendering:pixelated;}
+.dlg-body{padding:14px 18px;font-size:13px;line-height:1.9;flex:1;display:flex;align-items:center;color:#E8E0D0;}
+.dlg-foot{background:#0A1A1A;padding:5px 14px;font-size:11px;color:#9AADA8;}
+.dlg.kp .dlg-foot{background:#1A2A22;}
+.email-block{background:#0A1A1A;border:1px solid #1E3A3A;padding:16px;margin-bottom:4px;font-size:13px;line-height:1.85;}
+.email-from{font-size:11px;color:#B8A46A;letter-spacing:1px;margin-bottom:3px;}
+.email-subject{font-size:11px;color:#9AADA8;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid #1E3A3A;}
+.email-body{color:#E8E0D0;}
+.sec-head{font-size:11px;letter-spacing:3px;color:#B8A46A;text-transform:uppercase;margin-bottom:14px;padding-bottom:7px;border-bottom:1px solid #1E3A3A;}
+.sec-head.kp{color:#9AADA8;border-bottom-color:#3D5247;}
+.sec-head-lg{font-size:16px;letter-spacing:2px;color:#B8A46A;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #B8A46A;font-weight:bold;}
+.dec-label{font-size:15px;letter-spacing:2px;color:#B8A46A;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #3D4A4A;font-weight:bold;}
+.dec-label.kp{color:#8AC8A0;border-bottom-color:#3D5A48;}
+.force-info{background:#0A0A1A;border:1px solid #2E3A4A;padding:18px;margin-bottom:4px;font-size:13px;line-height:1.85;color:#9AADA8;font-style:italic;}
+.force-info strong{color:#E8E0D0;font-style:normal;}
+.dec-prompt{background:#1E3A3A;border-left:3px solid #B8A46A;padding:14px 16px;font-size:14px;line-height:1.85;margin-bottom:14px;color:#E8E0D0;font-weight:bold;}
+.dec-prompt.kp{background:#2C3E35;border-left-color:#7A3B1E;color:#F2EDE4;}
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:600px){.cards-grid{grid-template-columns:1fr;}}
+.card{border:1px solid #4A5A5A;background:#0D1F1F;padding:16px;cursor:pointer;transition:all 0.15s;position:relative;user-select:none;}
+.card.kp{background:#1A2A22;border-color:#3D5A48;}
+.card:hover:not(.disabled):not(.selected){border-color:#B8A46A;background:#0F2626;}
+.card.kp:hover:not(.disabled):not(.selected){border-color:#7A3B1E;background:#1E3028;}
+.card.selected{border-color:#B8A46A;background:#0F2626;border-width:2px;}
+.card.kp.selected{border-color:#B8A46A;background:#1E3028;border-width:2px;}
+.card.disabled{opacity:0.38;cursor:not-allowed;}
+.card-opt{font-size:11px;color:#B8A46A;letter-spacing:1px;margin-bottom:6px;font-weight:bold;}
+.card.kp .card-opt{color:#8AC8A0;}
+.card-title{font-size:13px;color:#E8E0D0;margin-bottom:8px;line-height:1.4;font-weight:bold;}
+.card-cost{font-size:11px;color:#B8A46A;margin-bottom:7px;}
+.card.kp .card-cost{color:#8AC8A0;}
+.card-desc{font-size:12px;color:#9AADA8;line-height:1.65;}
+.card-tag{font-size:10px;color:#C45A4A;margin-top:5px;letter-spacing:1px;}
+.card-check{position:absolute;top:12px;right:12px;width:18px;height:18px;border:1px solid #4A5A5A;display:flex;align-items:center;justify-content:center;font-size:13px;color:#B8A46A;}
+.card.selected .card-check{border-color:#B8A46A;background:#0D1F1F;}
+.tooltip{display:none;position:absolute;bottom:100%;left:0;right:0;background:#1A0A00;border:1px solid #8A4A3A;padding:8px 10px;font-size:11px;color:#E8E0D0;line-height:1.6;z-index:10;margin-bottom:4px;}
+.card.disabled:hover .tooltip{display:block;}
+.mutex-note{font-size:11px;color:#C45A4A;margin-top:8px;min-height:18px;}
+.rat-block{background:#0A1A1A;border:1px solid #1E3A3A;padding:16px;margin-bottom:16px;}
+.rat-label{font-size:11px;letter-spacing:2px;color:#B8A46A;text-transform:uppercase;margin-bottom:8px;}
+.rat-label.kp{color:#9AADA8;}
+.rat-hint{font-size:11px;color:#9AADA8;margin-bottom:10px;line-height:1.6;}
+.rat-input{width:100%;background:#0D1F1F;border:1px solid #4A5A5A;color:#E8E0D0;font-family:'Courier New',monospace;font-size:13px;padding:12px;resize:vertical;min-height:90px;line-height:1.75;}
+.rat-input:focus{outline:none;border-color:#B8A46A;}
+.conf-row{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap;}
+.conf-lbl{font-size:11px;color:#9AADA8;letter-spacing:1px;margin-right:4px;}
+.conf-btn{border:1px solid #4A5A5A;background:#0D1F1F;color:#9AADA8;font-family:'Courier New',monospace;font-size:11px;letter-spacing:1px;padding:6px 14px;cursor:pointer;transition:all 0.15s;}
+.conf-btn:hover{border-color:#B8A46A;color:#B8A46A;}
+.conf-btn.active{border-color:#B8A46A;color:#B8A46A;background:#0F2626;}
+.val-hint{font-size:11px;color:#C45A4A;margin-top:6px;min-height:16px;}
+.confirm-btn{width:100%;background:#0D1F1F;border:2px solid #B8A46A;color:#B8A46A;font-family:'Courier New',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;padding:12px;cursor:pointer;transition:all 0.15s;margin-top:10px;}
+.confirm-btn:hover:not(:disabled){background:#B8A46A;color:#0D1F1F;}
+.confirm-btn:disabled{opacity:0.38;cursor:not-allowed;}
+.confirm-btn.kp{border-color:#7A3B1E;color:#F2EDE4;}
+.confirm-btn.kp:hover:not(:disabled){background:#7A3B1E;}
+.next-btn{width:100%;background:#0D1F1F;border:2px solid #B8A46A;color:#B8A46A;font-family:'Courier New',monospace;font-size:12px;letter-spacing:3px;text-transform:uppercase;padding:14px;cursor:pointer;transition:all 0.2s;margin-top:18px;display:block;text-align:center;}
+.next-btn:hover:not(.dim):not(:disabled){background:#B8A46A;color:#0D1F1F;}
+.next-btn.dim,.next-btn:disabled{border-color:#3D4A4A;color:#4A5A5A;cursor:not-allowed;}
+.recap-sec{background:#1E3A3A;border:1px solid #3D4A4A;padding:18px;margin-bottom:18px;}
+.recap-sec h3{font-size:11px;letter-spacing:2px;color:#B8A46A;text-transform:uppercase;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid #3D4A4A;}
+.recap-sec h3.section-title{font-size:13px;letter-spacing:2px;color:#B8A46A;text-transform:uppercase;}
+.recap-con{font-size:12px;color:#C0CEC8;padding:8px 0 8px 20px;line-height:1.75;border-bottom:1px solid #0D1F1F;position:relative;}
+.recap-con::before{content:'\2022';position:absolute;left:6px;color:#B8A46A;font-size:14px;line-height:1.6;}
+.recap-con:last-child{border-bottom:none;}
+.recap-con strong{color:#E8E0D0;}
+.receipt-box{background:#0D1F1F;border:1px solid #1E3A3A;padding:14px;font-size:11px;line-height:1.85;white-space:pre-wrap;color:#9AADA8;max-height:220px;overflow-y:auto;margin-top:10px;}
+.copy-btn{background:#0D1F1F;border:2px solid #B8A46A;color:#B8A46A;font-family:'Courier New',monospace;font-size:11px;letter-spacing:1px;padding:9px 18px;cursor:pointer;margin-top:10px;transition:all 0.15s;display:inline-block;}
+.copy-btn:hover{background:#B8A46A;color:#0D1F1F;}
+.copy-btn.copied{border-color:#6ABA6A;color:#6ABA6A;}
+.recap-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #0D1F1F;}
+.recap-row:last-child{border-bottom:none;}
+.rk{color:#9AADA8;}.rv{color:#E8E0D0;}.rv.good{color:#6ABA6A;}.rv.warn{color:#B8A46A;}.rv.bad{color:#C45A4A;}
+.heat-map{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px;}
+.heat-cell{padding:10px 7px;font-size:10px;letter-spacing:1px;text-align:center;border:1px solid #1E3A3A;text-transform:uppercase;line-height:1.4;}
+.heat-cell.h-high{background:#3A2A0A;border-color:#B8A46A;color:#B8A46A;}
+.heat-cell.h-med{background:#2A1E0A;border-color:#7A5A20;color:#9A7A40;}
+.heat-cell.h-blank{background:#0A1010;border-color:#1E3A3A;color:#2E4A4A;}
+.divider{height:1px;background:#1E3A3A;margin:22px 0;}
+.preview-row{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;}
+.preview-item{font-size:11px;color:#9AADA8;}
+.preview-item span{color:#B8A46A;}
+.insuf{font-size:11px;color:#C45A4A;margin-top:7px;display:none;}
+.resp-tag{display:inline-block;font-size:10px;letter-spacing:1px;padding:2px 7px;border:1px solid #4A5A5A;color:#9AADA8;margin-left:8px;text-transform:uppercase;vertical-align:middle;}
+.resp-tag.avoid{border-color:#C45A4A;color:#C45A4A;}
+.resp-tag.reduce{border-color:#6ABA6A;color:#6ABA6A;}
+.resp-tag.transfer{border-color:#B8A46A;color:#B8A46A;}
+.resp-tag.accept{border-color:#9AADA8;color:#9AADA8;}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:0.3}}
+.flash{animation:flash 0.4s ease 2;}
+.page-nav{display:flex;gap:12px;margin-top:18px;}
+.page-nav-btn{flex:1;background:#0D1F1F;border:1px solid #3D4A4A;color:#9AADA8;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:10px;cursor:pointer;transition:all 0.15s;}
+.page-nav-btn:hover:not(:disabled){border-color:#B8A46A;color:#B8A46A;}
+.page-nav-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.page-nav-btn.primary{border-color:#B8A46A;color:#B8A46A;}
+.page-nav-btn.primary:hover:not(:disabled){background:#B8A46A;color:#0D1F1F;}
+.page-indicator{text-align:center;font-size:10px;color:#4A5A5A;letter-spacing:2px;margin-top:8px;}
+#title-screen{text-align:center;padding:60px 20px;}
+.title-company{font-size:13px;letter-spacing:5px;color:#B8A46A;text-transform:uppercase;margin-bottom:5px;}
+.title-sub{font-size:11px;letter-spacing:3px;color:#9AADA8;text-transform:uppercase;margin-bottom:48px;}
+.title-main{font-size:22px;letter-spacing:6px;color:#E8E0D0;text-transform:uppercase;margin-bottom:10px;}
+.title-tag{font-size:12px;letter-spacing:2px;color:#9AADA8;margin-bottom:48px;}
+.start-btn{background:#0D1F1F;border:2px solid #B8A46A;color:#B8A46A;font-family:'Courier New',monospace;font-size:13px;letter-spacing:3px;text-transform:uppercase;padding:16px 44px;cursor:pointer;transition:all 0.2s;}
+.start-btn:hover{background:#B8A46A;color:#0D1F1F;}
+.rel-bar-wrap{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #0D1F1F;}
+.rel-bar-label{font-size:12px;color:#B8A46A;font-weight:bold;margin-bottom:4px;}
+.rel-bar-track{height:8px;background:#1E3A3A;margin-bottom:6px;}
+.rel-bar-fill{height:100%;transition:width 0.4s;}
+.rel-bar-desc{font-size:11px;color:#9AADA8;line-height:1.6;}
+.risk-response-legend{background:#1A2A1A;border:2px solid #B8A46A;padding:20px 22px;margin-bottom:18px;font-size:13px;color:#C0CEC8;line-height:2.0;}
+.risk-response-legend .rrl-title{font-size:12px;letter-spacing:3px;color:#B8A46A;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #3D4A4A;font-weight:bold;}
+.risk-response-legend .rrl-row{display:flex;gap:10px;align-items:baseline;padding:3px 0;}
+.risk-response-legend .rrl-tag{font-size:10px;letter-spacing:1px;padding:2px 8px;border:1px solid #B8A46A;color:#B8A46A;white-space:nowrap;flex-shrink:0;}
+.risk-response-legend .rrl-tag.avoid{border-color:#C45A4A;color:#C45A4A;}
+.risk-response-legend .rrl-tag.reduce{border-color:#6ABA6A;color:#6ABA6A;}
+.risk-response-legend .rrl-tag.transfer{border-color:#B8A46A;color:#B8A46A;}
+.risk-response-legend .rrl-tag.accept{border-color:#9AADA8;color:#9AADA8;}
+.risk-response-legend .rrl-def{font-size:12px;color:#C0CEC8;}
+</style>
+</head>
+<body>
+<button id="mute-btn" onclick="toggleMute()" title="Toggle sound">&#128266;</button>
+<div id="app">
+<div id="title-screen">
+  <canvas id="meridian-logo-canvas" width="96" height="96" style="image-rendering:pixelated;display:block;margin:0 auto 18px;"></canvas>
+  <div class="title-company">Meridian Advisory Group</div>
+  <div class="title-sub">Risk Assessment Division</div>
+  <div class="title-main">Kingsport Industrial Services</div>
+  <div class="title-tag">A Risk Management Engagement</div>
+  <button class="start-btn" onclick="startGame()">BEGIN ENGAGEMENT &#9658;</button>
+</div>
+<div id="game-screen" class="hidden">
+  <div id="header">
+    <div><div id="header-logo">Meridian Advisory Group</div><div id="header-sub">Risk Assessment Division</div></div>
+    <div><div id="module-label">Current Module</div><div id="module-title">Module 5</div></div>
+  </div>
+  <div id="resource-bars">
+    <div class="res-bar-group">
+      <div class="res-label">Budget Remaining <span id="money-display">$20,000</span></div>
+      <div class="res-track"><div id="money-fill" class="res-fill" style="width:100%"></div></div>
+    </div>
+    <div class="res-bar-group">
+      <div class="res-label">Time Remaining <span id="time-display">40 units</span></div>
+      <div class="res-track"><div id="time-fill" class="res-fill" style="width:100%"></div></div>
+    </div>
+  </div>
+  <div id="content-area"></div>
+</div>
+</div>
+<script>
+var animACtx=null;
+function animAC(){
+  if(!animACtx)animACtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(animACtx.state==='suspended')animACtx.resume();
+  return animACtx;
+}
+var P={
+  ABYSS:'#0D1F1F',TEAL:'#1E3A3A',GOLD:'#B8A46A',PARCH:'#F5F0E8',
+  SLATE:'#3D4A4A',NAVY:'#1A2E44',IRON:'#2C3E35',FORGE:'#3D5247',
+  RUST:'#7A3B1E',STEEL:'#8A9B8E',CREAM:'#F2EDE4',CHAR:'#1A1A1A',
+  MID:'#5A5A5A',WARN:'#C04A2A',SMOKE1:'#4A5A4A',SMOKE2:'#3A4A3A',
+  SMOKE3:'#2A3A2A',RED:'#8A1A1A',LGREY:'#9A9A9A',DGREY:'#2A2A2A',
+  WHITE:'#F5F0E8',DNAVY:'#1A2E44',ORANGE:'#C06020',YELLOW:'#C8A020',
+  SKIN:'#C8A882',DARKGREEN:'#1A2E1A',LITEIRON:'#3D5247',
+  FLOORGREY:'#2A3030',CEILGREY:'#1A2828',WALLGREY:'#243030',
+  METALLT:'#6A7A7A',METALDARK:'#1A2A2A',PIPERUST:'#6A3010',
+  GLASS:'#2A4A4A',SCREENGREEN:'#20C040',SCREENDARK:'#004010',
+  PAPERYELLOW:'#E8DCA0',GOVBLUE:'#1A2A4A',GOVLT:'#2A3A5A',
+  CHARTBG:'#0A1818',CHARTGRID:'#1A2828',GREEN:'#20C040',
+  WOODDK:'#2A1A0A',WOODLT:'#3A2A1A',WOODGRAIN:'#241408',
+  NEWSPRINT:'#E8E4D8',PHONEGREY:'#4A4A4A',PHONEDK:'#2A2A2A',
+  CLOCKFACE:'#F0E8D0',WINBLUE:'#1A2A6A',WINLT:'#2A3A8A',
+  WINGREY:'#C0C0C0',WINDK:'#808080',WINTEAL:'#008080',
+  SCREENGREY:'#D0D0D0',ERRRED:'#C02020',PROGBLUE:'#0000A8',
+  SKYBLUE:'#1A3050',DESKLT:'#3A2A1A'
+};
+var GW=108,GH=68,S3=3;
+function apx(c,x,y,col){if(x<0||x>=GW||y<0||y>=GH)return;c.fillStyle=col;c.fillRect(x*S3,y*S3,S3,S3);}
+function arect(c,x,y,w,h,col){if(w<=0||h<=0)return;c.fillStyle=col;c.fillRect(x*S3,y*S3,w*S3,h*S3);}
+function ahline(c,x,y,w,col){arect(c,x,y,w,1,col);}
+function avline(c,x,y,h,col){arect(c,x,y,1,h,col);}
+function aclear(c,col){c.fillStyle=col;c.fillRect(0,0,GW*S3,GH*S3);}
+function aborder(c,col){ahline(c,0,0,GW,col);ahline(c,0,GH-1,GW,col);avline(c,0,0,GH,col);avline(c,GW-1,0,GH,col);}
+function agtext(c,str,x,y,col,sz,bold){sz=sz||6;bold=(bold===undefined)?true:bold;c.fillStyle=col;c.font=(bold?'bold ':'')+sz+'px Courier New';c.fillText(str,x*S3,y*S3);}
+function adither(c,x,y,w,h,c1,c2){for(var dy=0;dy<h;dy++)for(var dx=0;dx<w;dx++)apx(c,x+dx,y+dy,(dx+dy)%2===0?c1:c2);}
+function afcircle(c,cx,cy,r,col){for(var dy=-r;dy<=r;dy++)for(var dx=-r;dx<=r;dx++)if(dx*dx+dy*dy<=r*r)apx(c,cx+dx,cy+dy,col);}
+function acircle(c,cx,cy,r,col){for(var a=0;a<360;a+=3)apx(c,cx+Math.round(Math.cos(a*Math.PI/180)*r),cy+Math.round(Math.sin(a*Math.PI/180)*r),col);}
+function alerp(a,b,t){return a+(b-a)*t;}
+function aeaseOut(t){return 1-Math.pow(1-t,3);}
+function aclamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+function aosc(freq,type,gain,start,dur,att,rel){att=att||0.01;rel=rel||0.15;var a=animAC(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=freq;g.gain.value=0;o.connect(g);g.connect(a.destination);o.start(start);g.gain.setTargetAtTime(gain,start,att);g.gain.setTargetAtTime(0,start+dur,rel);o.stop(start+dur+1);}
+function asweep(f1,f2,type,gain,start,dur){var a=animAC(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f1,start);o.frequency.exponentialRampToValueAtTime(f2,start+dur);g.gain.value=0;o.connect(g);g.connect(a.destination);o.start(start);g.gain.setTargetAtTime(gain,start,0.02);g.gain.setTargetAtTime(0,start+dur*0.85,0.1);o.stop(start+dur+0.5);}
+function anoise(gain,start,dur,freq,q){freq=freq||800;q=q||0.5;var a=animAC(),buf=a.createBuffer(1,a.sampleRate*dur,a.sampleRate);var d=buf.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1;var src=a.createBufferSource(),g=a.createGain(),f=a.createBiquadFilter();f.type='bandpass';f.frequency.value=freq;f.Q.value=q;src.buffer=buf;src.connect(f);f.connect(g);g.connect(a.destination);g.gain.value=0;src.start(start);g.gain.setTargetAtTime(gain,start,0.01);g.gain.setTargetAtTime(0,start+dur*0.7,0.05);}
+function alfo(freq,modFreq,modDepth,type,gain,start,dur){var a=animAC(),carrier=a.createOscillator(),mod=a.createOscillator();var mg=a.createGain(),g=a.createGain();carrier.type=type;carrier.frequency.value=freq;mod.type='sine';mod.frequency.value=modFreq;mg.gain.value=modDepth;mod.connect(mg);mg.connect(carrier.frequency);g.gain.value=0;carrier.connect(g);g.connect(a.destination);mod.start(start);carrier.start(start);g.gain.setTargetAtTime(gain,start,0.05);g.gain.setTargetAtTime(0,start+dur,0.2);carrier.stop(start+dur+0.5);mod.stop(start+dur+0.5);}
+function atick(freq,gain,time){aosc(freq,'square',gain,time,0.02,0.001,0.015);}
+function drawProductionFloor(c,t,isStatic){
+  var phase=isStatic?'running':t<0.35?'running':t<0.55?'failing':'down';
+  arect(c,0,0,GW,12,P.CEILGREY);
+  [[8,2],[32,2],[56,2],[80,2]].forEach(function(l){var lx=l[0];arect(c,lx,2,14,2,P.LGREY);if(phase==='running')adither(c,lx,4,14,6,'#243A3A','#0D2020');});
+  arect(c,0,12,GW,36,P.WALLGREY);arect(c,0,46,GW,22,P.FLOORGREY);
+  for(var x=0;x<GW;x+=8)avline(c,x,46,22,P.METALDARK);
+  for(var y=46;y<GH;y+=6)ahline(c,0,y,GW,P.METALDARK);
+  arect(c,0,14,18,32,P.METALDARK);arect(c,1,15,16,30,'#1E2E2E');
+  for(var i=0;i<6;i++)arect(c,2,16+i*4,14,3,'#243030');
+  arect(c,0,38,4,10,P.PIPERUST);afcircle(c,2,43,3,'#5A3010');
+  arect(c,90,14,18,32,P.METALDARK);arect(c,91,15,16,30,'#1E2E2E');
+  for(var i=0;i<4;i++)arect(c,92,16+i*5,12,4,'#243030');
+  var warnFrame=phase==='down'?Math.floor(t*8)%2===0:phase==='failing';
+  arect(c,94,17,8,6,P.METALDARK);afcircle(c,98,20,3,warnFrame?P.WARN:'#3A1A0A');
+  var convY=32;
+  [[20,convY+4],[50,convY+4],[78,convY+4]].forEach(function(l){arect(c,l[0],l[1],3,14,P.METALLT);arect(c,l[0]-1,l[1]+12,5,2,P.METALLT);});
+  ahline(c,14,convY,80,P.METALLT);ahline(c,14,convY+12,80,P.METALLT);
+  var scroll=phase==='running'?Math.floor(t*60)%8:0;
+  arect(c,14,convY+2,80,10,P.METALDARK);
+  for(var i=0;i<12;i++){var bx=14+((i*7+scroll)%80);if(bx<92)avline(c,bx,convY+2,10,P.DGREY);}
+  var bearX=48,bearY=convY-6;
+  arect(c,bearX-4,bearY,12,6,P.METALLT);arect(c,bearX-3,bearY+1,10,4,'#5A6A6A');
+  afcircle(c,bearX+2,bearY+3,3,P.METALDARK);acircle(c,bearX+2,bearY+3,3,P.METALLT);apx(c,bearX+2,bearY+3,P.METALLT);
+  if(phase==='failing'||phase==='down'){var crackT=phase==='failing'?(t-0.35)/0.2:1;if(crackT>0)apx(c,bearX+2,bearY+1,'#7A3B1E');if(crackT>0.3)apx(c,bearX+3,bearY+2,'#7A3B1E');if(crackT>0.6){apx(c,bearX+4,bearY+3,'#7A3B1E');apx(c,bearX+3,bearY+4,'#7A3B1E');}}
+  if(phase==='failing'){var sp=(t-0.35)/0.2;[{x:bearX,y:bearY-2,vx:-0.5,vy:-1},{x:bearX+2,y:bearY-2,vx:0.8,vy:-1.2},{x:bearX+4,y:bearY-1,vx:1.2,vy:-0.8},{x:bearX-1,y:bearY,vx:-1,vy:-0.5},{x:bearX+3,y:bearY-3,vx:0.3,vy:-1.5},{x:bearX+1,y:bearY-1,vx:-0.7,vy:-1}].forEach(function(s,i){if(sp>i*0.1){var sf=sp-i*0.1;var sx=Math.round(s.x+s.vx*sf*12);var sy=Math.round(s.y+s.vy*sf*12+sf*sf*4);if(sf<0.5)apx(c,sx,sy,P.YELLOW);else if(sf<0.8)apx(c,sx,sy,P.ORANGE);else apx(c,sx,sy,P.RUST);}});}
+  if(phase==='down'){var smokeT=(t-0.55)/0.45;[{x:bearX+2,intense:1},{x:bearX-5,intense:0.6},{x:bearX+8,intense:0.7}].forEach(function(src,si){if(smokeT<si*0.15)return;var st=smokeT-si*0.15,maxH=Math.floor(st*22);for(var j=0;j<maxH;j++){var wobble=Math.round(Math.sin(j*0.4+t*4+si*2)*2.5);var fade=1-j/22,alpha=fade*src.intense;if(alpha<0.1)continue;var scol=j<4?P.SMOKE1:j<10?P.SMOKE2:P.SMOKE3;apx(c,src.x+wobble,convY-2-j,scol);if(j<8&&alpha>0.5)apx(c,src.x+wobble+1,convY-2-j,P.SMOKE2);}});}
+  arect(c,0,56,GW,12,P.METALDARK);ahline(c,0,56,GW,P.METALLT);
+  if(phase==='running'){arect(c,2,58,28,8,P.DARKGREEN);agtext(c,'LINE OPERATIONAL',4,64,'#20C040',6);}
+  else if(phase==='failing'){var fb=Math.floor(t*6)%2===0;arect(c,2,58,28,8,fb?P.WARN:P.METALDARK);agtext(c,'BEARING FAILURE',4,64,fb?P.CREAM:P.WARN,6);}
+  else{var fb2=Math.floor(t*5)%2===0;arect(c,2,58,106,8,P.RED);agtext(c,'LINE DOWN - PRODUCTION HALTED',3,64,fb2?P.CREAM:P.WARN,6);}
+  agtext(c,'MODULE 8',GW-28,5,P.RUST,5);aborder(c,phase==='down'?P.RUST:P.FORGE);
+}
+function soundEquip3HQ(){var a=animAC(),now=a.currentTime;alfo(80,3,8,'sawtooth',0.08,now,1.4);alfo(120,2,5,'sawtooth',0.05,now,1.4);aosc(160,'triangle',0.04,now,1.4);for(var i=0;i<8;i++)anoise(0.04,now+i*0.18,0.08,300,1.0);asweep(600,40,'sawtooth',0.18,now+1.2,0.6);anoise(0.20,now+1.2,0.4,200,0.3);aosc(40,'sine',0.22,now+1.25,0.3,0.001,0.08);anoise(0.15,now+1.35,0.12,2000,2.0);function alarm(t2){aosc(880,'square',0.09,t2,0.18,0.005,0.05);aosc(660,'square',0.07,t2+0.20,0.18,0.005,0.05);}alarm(now+2.0);alarm(now+2.5);alarm(now+3.0);alarm(now+3.5);aosc(55,'sine',0.06,now+1.8,2.5,0.3,0.5);}
+function drawCyberIncident(c,t,isStatic){
+  var phase=isStatic?'monitoring':t<0.25?'monitoring':t<0.5?'intrusion':t<0.65?'blocking':'aftermath';
+  arect(c,0,0,GW,GH,'#080E0E');arect(c,0,0,22,GH,'#0E1818');
+  for(var i=0;i<6;i++){arect(c,1,2+i*10,20,9,'#141E1E');arect(c,2,3+i*10,18,7,'#0A1212');for(var j=0;j<3;j++){var active=phase==='monitoring'&&Math.floor(t*4+i+j)%3!==0;apx(c,4+j*4,6+i*10,active?'#20C040':'#083008');}}
+  arect(c,86,0,22,GH,'#0E1818');
+  for(var i=0;i<6;i++){arect(c,87,2+i*10,20,9,'#141E1E');arect(c,88,3+i*10,18,7,'#0A1212');for(var j=0;j<3;j++){var active2=phase==='monitoring'&&Math.floor(t*3+i*2+j)%4!==0;apx(c,90+j*4,6+i*10,active2?'#20C040':'#083008');}}
+  arect(c,0,58,GW,10,'#0A1414');for(var x=0;x<GW;x+=12)avline(c,x,58,10,'#141E1E');
+  var termX=25,termY=8,termW=58,termH=46;arect(c,termX,termY,termW,termH,'#0A1818');arect(c,termX,termY,termW,2,'#1A2A2A');arect(c,termX,termY+termH-2,termW,2,'#1A2A2A');avline(c,termX,termY,termH,'#1A2A2A');avline(c,termX+termW-1,termY,termH,'#1A2A2A');
+  var scrX=termX+2,scrY=termY+3,scrW=termW-4,scrH=termH-6;arect(c,scrX,scrY,scrW,scrH,P.SCREENDARK);for(var sl=scrY;sl<scrY+scrH;sl+=2)ahline(c,scrX,sl,scrW,'#001808');
+  var lines=[{text:'KINGSPORT_IDS v2.1 [1997]',col:'#20A030'},{text:'>> NETWORK MONITOR ACTIVE',col:'#208030'},{text:'>> SCANNING PORTS...',col:'#208030'},{text:'>> INBOUND: 10.4.2.18:4821',col:'#20C040'},{text:'>> SIGNATURE: MATCH [APT-7]',col:P.WARN},{text:'>> FIREWALL: ENGAGING...',col:P.WARN},{text:'>> BLOCK INITIATED',col:'#20C040'},{text:'>> SYSTEMS OFFLINE: 2',col:P.RUST}];
+  var visCount=isStatic?4:Math.floor(t*lines.length*1.6);lines.slice(0,Math.min(visCount,lines.length)).forEach(function(l,i){var ly=scrY+3+i*5;if(ly<scrY+scrH-4)agtext(c,l.text,scrX+1,ly,l.col,5);});
+  if(phase==='intrusion'||phase==='blocking'){var iT=phase==='intrusion'?(t-0.25)/0.25:1;for(var i=0;i<4;i++){var px2=Math.floor(alerp(GW,termX+termW,Math.min(1,iT*2-i*0.2)));if(px2<GW&&px2>termX)arect(c,px2,30+i*4,4,2,P.WARN);}}
+  if(phase==='blocking'||phase==='aftermath'){arect(c,termX+1,termY+termH-18,termW-2,16,P.DNAVY);var fb=phase==='aftermath'?Math.floor(t*6)%2===0:true;if(fb){agtext(c,'INTRUSION ATTEMPT BLOCKED',termX+3,termY+termH-11,P.RUST,5);agtext(c,'SYSTEMS OFFLINE: 2',termX+3,termY+termH-5,P.STEEL,5);}}
+  if(phase==='blocking'&&Math.floor(t*15)%4===0){c.fillStyle='rgba(26,46,68,0.25)';c.fillRect(scrX*S3,scrY*S3,scrW*S3,scrH*S3);}
+  if(phase==='aftermath')[3,7].forEach(function(unit){for(var j=0;j<3;j++)apx(c,4+j*4,6+unit%6*10,'#C02020');});
+  arect(c,0,60,GW,8,P.METALDARK);ahline(c,0,60,GW,'#1A2A2A');
+  var statusCol=phase==='monitoring'?'#20C040':phase==='aftermath'?P.RUST:P.WARN;
+  var statusStr=phase==='monitoring'?'ALL SYSTEMS NOMINAL':phase==='intrusion'?'INTRUSION DETECTED':phase==='blocking'?'FIREWALL BLOCKING...':'2 SYSTEMS OFFLINE';
+  agtext(c,statusStr,3,66,statusCol,5);agtext(c,'MODULE 7',GW-28,5,P.RUST,5);aborder(c,phase==='aftermath'?P.RUST:P.DNAVY);
+}
+function soundCyberHQ(){var a=animAC(),now=a.currentTime;alfo(60,0.5,3,'sine',0.06,now,4.5);aosc(120,'sine',0.03,now,4.5);for(var i=0;i<12;i++)atick(200+Math.random()*300,0.035,now+i*0.08+Math.random()*0.04);asweep(200,800,'square',0.08,now+0.6,0.8);aosc(440,'square',0.06,now+0.7,0.4,0.01,0.1);for(var i=0;i<20;i++)atick(400+Math.random()*600,0.04,now+0.8+i*0.04);anoise(0.15,now+1.5,0.2,1000,1.5);aosc(880,'square',0.10,now+1.5,0.12,0.002,0.05);aosc(660,'square',0.08,now+1.62,0.12,0.002,0.05);asweep(440,110,'square',0.10,now+1.8,0.4);asweep(330,82,'square',0.08,now+2.0,0.4);anoise(0.08,now+1.8,0.3,150,0.4);alfo(50,1.5,6,'sawtooth',0.05,now+2.3,2.0);}
+function drawMasDEP(c,t,isStatic){
+  var phase=isStatic?'letter':t<0.3?'arrive':t<0.65?'open':t<0.85?'letter':'reading';
+  arect(c,0,0,GW,30,'#1A2A3A');for(var b=0;b<10;b++){ahline(c,0,b*3,GW,b%2===0?'#243040':'#1A2434');if(b%2===0)adither(c,0,b*3,GW,1,'#243A4A','#1A2A3A');}
+  arect(c,0,0,2,30,'#1A2020');arect(c,GW-2,0,2,30,'#1A2020');ahline(c,0,0,GW,'#1A2020');ahline(c,0,29,GW,'#1A2020');avline(c,GW/2,0,30,'#1A2020');
+  arect(c,0,30,GW,8,'#2A3A2A');ahline(c,0,30,GW,P.METALDARK);arect(c,0,38,GW,30,'#2A1A0A');ahline(c,0,38,GW,'#3A2A1A');adither(c,0,38,GW,20,'#2A1A0A','#261608');
+  arect(c,2,42,8,4,'#3A3A3A');arect(c,6,39,6,8,'#8A6040');arect(c,7,40,4,6,'#C89060');
+  var envW=50,envH=32,envX=phase==='arrive'?Math.max(GW/2-envW/2,alerp(GW+10,GW/2-envW/2,aeaseOut(t/0.3))):GW/2-envW/2,envY=20;
+  if(phase!=='reading'){arect(c,envX,envY,envW,envH,'#E8DCA0');adither(c,envX,envY+envH-8,envW,8,'#D8CC90','#E8DCA0');ahline(c,envX,envY,envW,P.RUST);ahline(c,envX,envY+envH-1,envW,P.RUST);avline(c,envX,envY,envH,P.RUST);avline(c,envX+envW-1,envY,envH,P.RUST);for(var i=0;i<=envW/2;i++){apx(c,envX+i,envY+i,P.PAPERYELLOW);apx(c,envX+envW-1-i,envY+i,P.PAPERYELLOW);}arect(c,envX+2,envY+4,15,8,'#D8CC90');agtext(c,'MassDEP',envX+3,envY+9,'#5A4A20',4);arect(c,envX+32,envY+4,14,8,'#8A1A1A');agtext(c,'OFFICIAL',envX+33,envY+9,P.CREAM,4);}
+  if(phase==='open'||phase==='letter'||phase==='reading'){var lt=phase==='open'?(t-0.3)/0.35:1,letterH=Math.floor(lt*28);if(letterH>0){arect(c,envX+2,envY+2,envW-4,letterH,P.PARCH);if(letterH>5){afcircle(c,envX+8,envY+7,4,P.GOVBLUE);acircle(c,envX+8,envY+7,4,P.GOVLT);agtext(c,'COMMONWEALTH OF MASSACHUSETTS',envX+14,envY+7,P.GOVBLUE,4);agtext(c,'Dept. of Environmental Protection',envX+14,envY+11,P.GOVLT,4);ahline(c,envX+3,envY+13,envW-6,P.GOVLT);}if(letterH>14){agtext(c,'SUBJECT: Administrative Review',envX+4,envY+18,'#3A2A0A',5);agtext(c,'Reference: TCE-2022-KIS-441',envX+4,envY+22,'#4A3A1A',4);}if(letterH>20||phase==='reading'){var fb=phase==='reading'&&Math.floor(t*5)%2===0;arect(c,envX+4,envY+24,envW-8,6,fb?P.RUST:'#8A1A1A');agtext(c,'ACTION REQUIRED',envX+5,envY+28,fb?P.CREAM:P.WARN,5);}}}
+  arect(c,0,60,GW,8,P.METALDARK);ahline(c,0,60,GW,'#1A2A2A');var stCol=phase==='letter'||phase==='reading'?P.RUST:P.STEEL;var stStr=phase==='arrive'?'INCOMING CORRESPONDENCE':phase==='open'?'REVIEWING DOCUMENT...':'ACTION REQUIRED - 30 DAYS';agtext(c,stStr,3,66,stCol,5);agtext(c,'MODULE 7',GW-28,5,P.RUST,5);aborder(c,phase==='letter'||phase==='reading'?P.RUST:P.GOLD);
+}
+function soundMasDEPHQ(){var a=animAC(),now=a.currentTime;alfo(200,0.2,20,'sine',0.02,now,4.0);anoise(0.06,now+0.1,0.25,600,0.4);anoise(0.04,now+0.3,0.15,800,0.5);anoise(0.08,now+0.8,0.30,1200,0.8);anoise(0.05,now+0.95,0.20,900,0.6);for(var i=0;i<5;i++)anoise(0.04,now+1.2+i*0.12,0.08,1000+i*200,1.2);aosc(523,'triangle',0.11,now+2.0,0.5,0.04,0.2);aosc(440,'triangle',0.10,now+2.55,0.5,0.04,0.2);aosc(349,'triangle',0.09,now+3.1,0.7,0.04,0.3);aosc(87,'sine',0.07,now+2.8,1.2,0.2,0.4);}
+function drawBrauerHecht(c,t,isStatic){
+  var phase=isStatic?'spike':t<0.2?'normal':t<0.55?'rising':t<0.75?'spike':'aftermath';
+  arect(c,0,0,GW,GH,'#060E10');arect(c,0,0,GW,7,'#0A1820');ahline(c,0,7,GW,'#1A3040');agtext(c,'MERIDIAN ADV. - COMMODITY RISK MONITOR',2,5,P.GOLD,5);
+  var timeStr=(String(Math.floor(t*23+9)).length<2?'0':'')+String(Math.floor(t*23+9))+':'+(String(Math.floor(t*60%60)).length<2?'0':'')+String(Math.floor(t*60%60));agtext(c,timeStr,GW-22,5,P.STEEL,5);
+  arect(c,0,8,30,50,'#080E12');avline(c,30,8,50,'#1A3040');agtext(c,'METALS',2,13,P.GOLD,5);ahline(c,0,14,30,'#1A3040');
+  var metals=[{name:'ALUM',base:2400,vr:0.02,col:P.STEEL},{name:'COPPER',base:8900,vr:0.03,col:'#C08020'},{name:'NICKEL',base:15800,vr:0.025,col:P.LGREY},{name:'TITANIUM',base:5200,vr:0.34,col:null}];
+  metals.forEach(function(m,i){var priceT=phase==='normal'?0:phase==='rising'?(t-0.2)/0.35:1;var isNi=m.name==='TITANIUM';var price=m.base+(isNi?m.base*m.vr*priceT*1.14:m.base*m.vr*Math.sin(t*3+i));var col=isNi?(priceT>0.3?P.WARN:(priceT>0?'#C06020':P.STEEL)):m.col;agtext(c,m.name,2,20+i*9,col,5);agtext(c,Math.floor(price).toString(),16,20+i*9,col,5);if(isNi&&priceT>0)agtext(c,'+'+Math.floor(priceT*14)+'%',2,25+i*9,P.WARN,4);ahline(c,0,28+i*9,30,'#0E1A20');});
+  var chartX=31,chartY=8,chartW=48,chartH=40;arect(c,chartX,chartY,chartW,chartH,P.CHARTBG);agtext(c,'TITANIUM SPOT - 12 MONTH',chartX+1,chartY+5,P.STEEL,4);ahline(c,chartX,chartY+6,chartW,'#1A2828');
+  for(var gy=0;gy<4;gy++)ahline(c,chartX,chartY+7+gy*8,chartW,P.CHARTGRID);for(var gx=0;gx<5;gx++)avline(c,chartX+gx*10,chartY+7,33,P.CHARTGRID);avline(c,chartX+1,chartY+7,33,'#2A3A3A');ahline(c,chartX+1,chartY+39,chartW-2,'#2A3A3A');
+  var numPoints=40,points=[];for(var i=0;i<numPoints;i++){var xT=i/(numPoints-1);var yVal;if(xT<0.75){yVal=0.4+Math.sin(xT*8)*0.12+Math.sin(xT*3)*0.08+Math.cos(xT*13)*0.06;}else{var st2=(xT-0.75)/0.25;var spikeProg=isStatic?1:Math.min(1,phase==='normal'?0:phase==='rising'?(t-0.2)/0.35*2:1);yVal=0.4+Math.sin(0.75*8)*0.12+st2*0.55*spikeProg;}points.push({x:chartX+2+Math.floor(xT*(chartW-4)),y:chartY+39-Math.floor(yVal*30)});}
+  for(var i=1;i<points.length;i++){var pT=i/(points.length-1),lineCol=pT>0.75?P.RUST:(pT>0.6?P.ORANGE:P.STEEL);var p=points[i],pp=points[i-1];apx(c,p.x,p.y,lineCol);if(Math.abs(p.y-pp.y)>1)for(var j=Math.min(p.y,pp.y);j<=Math.max(p.y,pp.y);j++)apx(c,p.x,j,lineCol);}
+  if(phase==='spike'||phase==='aftermath'||isStatic){var lastPt=points[points.length-1];arect(c,lastPt.x-14,lastPt.y-8,20,8,P.RUST);agtext(c,'+14%',lastPt.x-12,lastPt.y-2,P.CREAM,5);}
+  arect(c,80,8,28,50,'#080E12');avline(c,80,8,50,'#1A3040');agtext(c,'IMPACT',82,13,P.GOLD,5);ahline(c,80,14,28,'#1A3040');
+  [{label:'EXPOSURE',val:isStatic?'HIGH':phase==='normal'?'LOW':phase==='rising'?'MED':'HIGH',col:isStatic?P.WARN:phase==='normal'?'#20C040':phase==='rising'?'#C08020':P.WARN},{label:'HEDGE',val:'NONE',col:P.RUST},{label:'SUPPLIER',val:'SINGLE',col:P.RUST},{label:'RESERVE',val:'LOW',col:P.WARN}].forEach(function(imp,i){agtext(c,imp.label,82,21+i*8,P.STEEL,4);agtext(c,imp.val,82,26+i*8,imp.col,5);ahline(c,80,28+i*8,28,'#0E1A20');});
+  arect(c,0,58,GW,10,'#080E12');ahline(c,0,58,GW,'#1A3040');if(phase==='spike'||phase==='aftermath'||isStatic){var fb=Math.floor(t*5)%2===0;arect(c,0,58,GW,10,fb?'#1A0808':'#080E12');agtext(c,'BRAUER-HECHT NOTICE: +14% NEXT QUARTER',2,65,fb?P.WARN:P.RUST,5);}else agtext(c,'MONITORING: BRAUER-HECHT MATERIALS',2,65,P.STEEL,5);
+  agtext(c,'MODULE 8',GW-28,5,P.RUST,5);aborder(c,phase==='spike'||phase==='aftermath'?P.RUST:P.TEAL);
+}
+function soundBrauerHechtHQ(){var a=animAC(),now=a.currentTime;for(var i=0;i<25;i++)atick(150+Math.random()*100,0.025,now+i*0.05+Math.random()*0.02);asweep(200,600,'triangle',0.07,now+0.4,1.5);aosc(440,'triangle',0.05,now+0.8,1.0,0.1,0.3);aosc(466,'triangle',0.04,now+0.9,0.9,0.1,0.3);aosc(1200,'square',0.10,now+1.8,0.15,0.003,0.05);asweep(800,200,'sawtooth',0.09,now+1.85,0.5);for(var i=0;i<8;i++)atick(300+i*80,0.05,now+1.9+i*0.06);aosc(523,'triangle',0.08,now+2.5,0.35,0.04,0.15);aosc(415,'triangle',0.07,now+2.9,0.40,0.04,0.2);aosc(311,'triangle',0.07,now+3.3,0.55,0.04,0.3);aosc(82,'sine',0.06,now+2.8,1.5,0.2,0.5);}
+function animEquip1(c,t,isStatic){
+  var phase=isStatic?'running':t<0.4?'running':t<0.65?'snap':t<0.85?'resolved':'text';
+  arect(c,0,0,GW,12,P.CEILGREY);[[8,2],[32,2],[56,2],[80,2]].forEach(function(l){arect(c,l[0],2,14,2,P.LGREY);adither(c,l[0],4,14,6,'#243A3A','#0D2020');});
+  arect(c,0,12,GW,36,P.WALLGREY);adither(c,0,12,GW,36,'#243030','#1E2828');arect(c,0,46,GW,22,P.FLOORGREY);
+  for(var x=0;x<GW;x+=8)avline(c,x,46,22,P.METALDARK);for(var y=46;y<GH;y+=6)ahline(c,0,y,GW,P.METALDARK);
+  arect(c,0,14,18,30,P.METALDARK);arect(c,1,15,16,28,'#1E2E2E');for(var i=0;i<6;i++)arect(c,2,16+i*4,14,3,'#243030');arect(c,0,36,4,12,P.PIPERUST);afcircle(c,2,42,3,'#5A3010');
+  arect(c,90,14,18,30,P.METALDARK);arect(c,91,15,16,28,'#1E2E2E');for(var i=0;i<5;i++)arect(c,92,16+i*5,12,4,'#243030');
+  var convY=30;[[18,convY+4],[48,convY+4],[76,convY+4]].forEach(function(l){arect(c,l[0],l[1],3,16,P.METALLT);arect(c,l[0]-1,l[1]+14,5,2,P.METALLT);});
+  ahline(c,13,convY,80,P.METALLT);ahline(c,13,convY+12,80,P.METALLT);var scroll=phase==='running'?Math.floor(t*55)%8:Math.floor(0.4*55)%8;arect(c,13,convY+2,80,10,P.METALDARK);for(var i=0;i<12;i++){var bx=13+((i*7+scroll)%80);if(bx<91)avline(c,bx,convY+2,10,'#2A3A3A');}
+  [8,30,58].forEach(function(bx){var cx2=phase==='running'?Math.floor(bx+t*55)%82+13:Math.floor(bx+0.4*55)%82+13;if(cx2>=13&&cx2<=89){arect(c,cx2,convY+3,7,7,'#4A5A5A');arect(c,cx2+1,convY+4,5,5,'#3A4A4A');ahline(c,cx2+1,convY+4,5,'#5A6A6A');avline(c,cx2+1,convY+4,5,'#5A6A6A');}});
+  var gx=55,gy=convY-8,gr=7,angle=phase==='running'?t*Math.PI*8:phase==='snap'?0.4*Math.PI*8+((t-0.4)/0.25)*Math.PI*2:0.4*Math.PI*8+Math.PI*2;
+  acircle(c,gx,gy,gr,P.METALLT);acircle(c,gx,gy,gr-2,P.STEEL);afcircle(c,gx,gy,2,P.METALLT);
+  for(var i=0;i<14;i++){if(phase!=='running'&&i===4)continue;var a2=angle+(i/14)*Math.PI*2;var tx2=gx+Math.round(Math.cos(a2)*(gr+1));var ty2=gy+Math.round(Math.sin(a2)*(gr+1));arect(c,tx2-1,ty2-1,2,2,P.METALLT);}
+  if(phase==='snap'||phase==='resolved'||phase==='text'){var crT=(t-0.4)/0.15;apx(c,gx+5,gy-3,P.RUST);if(crT>0.3)apx(c,gx+6,gy-2,P.RUST);if(crT>0.6){apx(c,gx+7,gy-1,P.RUST);apx(c,gx+6,gy,P.RUST);}}
+  if(phase==='snap'){var sp=(t-0.4)/0.25;[{x:gx+6,y:gy-4,vx:0.8,vy:-1.2},{x:gx+4,y:gy-5,vx:-0.3,vy:-1.5},{x:gx+7,y:gy-2,vx:1.3,vy:-0.6},{x:gx+5,y:gy-3,vx:0.1,vy:-1.8},{x:gx+3,y:gy-4,vx:-0.8,vy:-1.1},{x:gx+6,y:gy-1,vx:1.5,vy:-0.4}].forEach(function(s,i){if(sp>i*0.1){var sf=sp-i*0.1;var sx=Math.round(s.x+s.vx*sf*12);var sy=Math.round(s.y+s.vy*sf*12+sf*sf*5);if(sf<0.4)apx(c,sx,sy,P.YELLOW);else if(sf<0.7)apx(c,sx,sy,P.ORANGE);else apx(c,sx,sy,P.RUST);}});}
+  arect(c,0,56,GW,12,P.METALDARK);ahline(c,0,56,GW,P.METALLT);
+  if(phase==='running'){arect(c,2,58,50,8,P.DARKGREEN);agtext(c,'LINE OPERATIONAL',4,64,P.GREEN,6);}else if(phase==='snap'){var fb=Math.floor(t*8)%2===0;arect(c,2,58,50,8,fb?P.WARN:P.METALDARK);agtext(c,'MECHANICAL VARIANCE',4,64,fb?P.CREAM:P.WARN,6);}else{arect(c,2,58,80,8,P.DARKGREEN);agtext(c,'RESOLVED - PRODUCTION CONTINUES',3,64,P.GREEN,5);}
+  agtext(c,'MODULE 5',GW-28,5,P.RUST,5);aborder(c,phase==='snap'?P.RUST:P.FORGE);
+}
+function soundEquip1(){var a=animAC(),now=a.currentTime;alfo(80,2,6,'sawtooth',0.07,now,2.0);alfo(120,1.5,4,'sawtooth',0.04,now,2.0);for(var i=0;i<10;i++)anoise(0.03,now+i*0.16,0.07,300,1.0);anoise(0.14,now+1.6,0.08,2500,2.0);aosc(800,'square',0.06,now+1.6,0.04,0.001,0.02);for(var i=0;i<5;i++)aosc(600+Math.random()*400,'square',0.03,now+1.6+i*0.04,0.02,0.001,0.015);asweep(90,60,'sawtooth',0.06,now+1.65,0.2);alfo(85,2,5,'sawtooth',0.05,now+2.1,1.5);anoise(0.02,now+3.5,0.3,600,0.8);}
+function animEquip2(c,t,isStatic){
+  var phase=isStatic?'running':t<0.3?'running':t<0.55?'crack':t<0.75?'halt':'resolved';
+  arect(c,0,0,GW,12,P.CEILGREY);[[8,2],[32,2],[56,2],[80,2]].forEach(function(l){arect(c,l[0],2,14,2,P.LGREY);if(phase==='running')adither(c,l[0],4,14,6,'#243A3A','#0D2020');});
+  arect(c,0,12,GW,36,P.WALLGREY);adither(c,0,12,GW,36,'#243030','#1E2828');arect(c,0,46,GW,22,P.FLOORGREY);for(var x=0;x<GW;x+=8)avline(c,x,46,22,P.METALDARK);for(var y=46;y<GH;y+=6)ahline(c,0,y,GW,P.METALDARK);
+  arect(c,0,14,18,30,P.METALDARK);arect(c,1,15,16,28,'#1E2E2E');for(var i=0;i<6;i++)arect(c,2,16+i*4,14,3,'#243030');arect(c,0,36,4,12,P.PIPERUST);arect(c,90,14,18,30,P.METALDARK);arect(c,91,15,16,28,'#1E2E2E');for(var i=0;i<5;i++)arect(c,92,16+i*5,12,4,'#243030');
+  var convY=30;[[18,convY+4],[48,convY+4],[76,convY+4]].forEach(function(l){arect(c,l[0],l[1],3,16,P.METALLT);arect(c,l[0]-1,l[1]+14,5,2,P.METALLT);});
+  ahline(c,13,convY,80,P.METALLT);ahline(c,13,convY+12,80,P.METALLT);var scroll2=phase==='running'?Math.floor(t*50)%8:Math.floor(0.3*50)%8;arect(c,13,convY+2,80,10,P.METALDARK);for(var i=0;i<12;i++){var bx=13+((i*7+scroll2)%80);if(bx<91)avline(c,bx,convY+2,10,'#2A3A3A');}
+  [10,35,62].forEach(function(bx){var cx2=phase==='running'?Math.floor(bx+t*50)%82+13:Math.floor(bx+0.3*50)%82+13;if(cx2>=13&&cx2<=89){arect(c,cx2,convY+3,7,7,'#4A5A5A');arect(c,cx2+1,convY+4,5,5,'#3A4A4A');ahline(c,cx2+1,convY+4,5,'#5A6A6A');}});
+  var wobble=(!isStatic&&phase==='running')?Math.round(Math.sin(t*Math.PI*12)*1.5):0,gx=55+wobble,gy=convY-8;
+  var angleSpeed=phase==='running'?t*Math.PI*6:phase==='crack'?0.3*Math.PI*6+(t-0.3)*Math.PI*1.5:0.3*Math.PI*6+0.25*Math.PI*1.5;
+  acircle(c,gx,gy,7,P.MID);acircle(c,gx,gy,5,P.STEEL);afcircle(c,gx,gy,2,P.MID);
+  for(var i=0;i<14;i++){if(i===4)continue;var a2=angleSpeed+(i/14)*Math.PI*2;var tx2=gx+Math.round(Math.cos(a2)*8);var ty2=gy+Math.round(Math.sin(a2)*8);arect(c,tx2-1,ty2-1,2,2,P.MID);}
+  apx(c,gx+5,gy-3,P.RUST);apx(c,gx+6,gy-2,P.RUST);
+  if(phase==='crack'||phase==='halt'||phase==='resolved'){var crT=(t-0.3)/0.25,a9=angleSpeed+(9/14)*Math.PI*2,t9x=gx+Math.round(Math.cos(a9)*6),t9y=gy+Math.round(Math.sin(a9)*6);apx(c,t9x,t9y,P.RUST);if(crT>0.3)apx(c,t9x+1,t9y,P.RUST);if(crT>0.6){apx(c,t9x+1,t9y+1,P.RUST);apx(c,t9x,t9y+1,P.RUST);}}
+  if(phase==='crack'){var sp=(t-0.3)/0.25;[{x:gx+4,y:gy-5,vx:0.6,vy:-1.3},{x:gx+6,y:gy-3,vx:1.2,vy:-0.8},{x:gx+2,y:gy-4,vx:-0.4,vy:-1.6},{x:gx+7,y:gy-2,vx:1.4,vy:-0.5},{x:gx+5,y:gy-4,vx:0.2,vy:-1.9},{x:gx+3,y:gy-3,vx:-0.7,vy:-1.2},{x:gx+8,y:gy-1,vx:1.6,vy:-0.3},{x:gx+1,y:gy-5,vx:-1.0,vy:-1.0}].forEach(function(s,i){if(sp>i*0.08){var sf=sp-i*0.08;var sx=Math.round(s.x+s.vx*sf*14);var sy=Math.round(s.y+s.vy*sf*14+sf*sf*6);if(sf<0.35)apx(c,sx,sy,P.YELLOW);else if(sf<0.65)apx(c,sx,sy,P.ORANGE);else apx(c,sx,sy,P.RUST);}});}
+  arect(c,0,56,GW,12,P.METALDARK);ahline(c,0,56,GW,P.METALLT);
+  if(phase==='running'){arect(c,2,58,50,8,P.DARKGREEN);agtext(c,'LINE OPERATIONAL',4,64,P.GREEN,6);}else if(phase==='crack'){var fb=Math.floor(t*8)%2===0;arect(c,2,58,50,8,fb?P.WARN:P.METALDARK);agtext(c,'INTERMITTENT VARIANCE',4,64,fb?P.CREAM:P.WARN,6);}else{arect(c,2,58,80,8,P.METALDARK);agtext(c,'RESOLVED.',3,64,P.MID,6);}
+  agtext(c,'MODULE 6',GW-28,5,P.RUST,5);aborder(c,phase==='crack'?P.RUST:'#3A4A3A');
+}
+function soundEquip2(){var a=animAC(),now=a.currentTime;alfo(75,2.5,8,'sawtooth',0.08,now,1.5);alfo(115,2,5,'sawtooth',0.05,now,1.5);[0.3,0.6,0.9,1.2].forEach(function(t2){anoise(0.08,now+t2,0.07,150,0.4);});anoise(0.18,now+1.5,0.12,2200,2.5);aosc(600,'square',0.08,now+1.5,0.05,0.001,0.025);for(var i=0;i<8;i++)aosc(500+Math.random()*500,'square',0.035,now+1.5+i*0.035,0.025,0.001,0.015);asweep(80,40,'sawtooth',0.08,now+1.8,0.5);anoise(0.06,now+2.0,0.2,200,0.5);}
+function animControls(c,t,isStatic){
+  var phase=isStatic?'document':t<0.25?'desk':t<0.55?'document':t<0.75?'stamp':'question';
+  arect(c,0,0,GW,28,P.ABYSS);for(var b=0;b<9;b++){ahline(c,0,b*3+1,GW,b%2===0?'#1A2A3A':'#142030');if(b%2===0)adither(c,0,b*3+1,GW,1,'#1E2E3E','#142030');}
+  arect(c,0,0,3,28,'#0A1420');arect(c,GW-3,0,3,28,'#0A1420');ahline(c,0,28,GW,'#1A2A2A');arect(c,0,28,GW,10,P.WALLGREY);arect(c,0,38,GW,30,P.WOODDK);ahline(c,0,38,GW,P.WOODLT);adither(c,0,38,GW,20,P.WOODDK,P.WOODGRAIN);
+  for(var i=0;i<3;i++){arect(c,2+i*6,40,5,8,'#1A2A3A');arect(c,3+i*6,41,3,6,'#243040');}arect(c,26,39,5,7,'#6A4A30');arect(c,27,40,3,5,'#C89060');afcircle(c,GW-8,40,3,'#2A5A2A');arect(c,GW-9,43,5,4,'#6A4A30');arect(c,GW-18,42,12,2,'#2A2A8A');apx(c,GW-18,43,'#C0C0C0');
+  var docX=isStatic?18:phase==='desk'?Math.max(18,GW+10-Math.floor(t/0.25*(GW+10-18))):18,docW=70,docH=28,docY=38;
+  if(phase!=='desk'||docX<GW){arect(c,docX,docY,docW,docH,P.PAPERYELLOW);adither(c,docX,docY+docH-6,docW,6,'#D8CC90',P.PAPERYELLOW);arect(c,docX+2,docY+1,docW-4,5,'#2C3E35');agtext(c,'KINGSPORT INDUSTRIAL SERVICES',docX+3,docY+5,P.STEEL,4);ahline(c,docX+2,docY+6,docW-4,P.RUST);agtext(c,'PROCUREMENT AUTHORIZATION',docX+3,docY+11,'#4A3A1A',5);agtext(c,'Vendor: [LEGACY SUPPLIER]',docX+3,docY+16,'#5A4A2A',4);agtext(c,'Amount: $340,000',docX+3,docY+20,'#5A4A2A',4);agtext(c,'Vetting: STANDARD PROTOCOL BYPASSED',docX+3,docY+24,'#7A3B1E',4);ahline(c,docX,docY,docW,P.RUST);ahline(c,docX,docY+docH-1,docW,P.RUST);avline(c,docX,docY,docH,P.RUST);avline(c,docX+docW-1,docY,docH,P.RUST);}
+  if(phase==='stamp'||phase==='question'){var sT=phase==='stamp'?(t-0.55)/0.2:1,stampY=isStatic?docY+8:Math.max(docY+8,docY-12+Math.floor(sT*20));arect(c,docX+18,stampY,22,9,P.MID);arect(c,docX+19,stampY+1,20,7,'#4A4A4A');agtext(c,'APPROVED',docX+20,stampY+7,P.LGREY,5);arect(c,docX+24,stampY-4,10,4,'#6A5040');arect(c,docX+26,stampY-6,6,3,'#5A4030');}
+  if(phase==='question'){var qT=(t-0.75)/0.25;if(Math.min(1,qT*4)>0.1){afcircle(c,docX+58,docY+12,6,'#1E3A3A');acircle(c,docX+58,docY+12,6,P.GOLD);agtext(c,'?',docX+55,docY+16,P.GOLD,8);for(var i=0;i<5;i++)apx(c,docX+53-i,docY+24-i,P.GOLD);apx(c,docX+48,docY+25,P.GOLD);apx(c,docX+49,docY+24,P.GOLD);}}
+  arect(c,0,56,GW,12,P.METALDARK);ahline(c,0,56,GW,'#1A2A2A');agtext(c,'INTERNAL CONTROLS FLAG',3,62,P.GOLD,5);agtext(c,'MODULE 6',GW-28,5,P.RUST,5);aborder(c,P.GOLD);
+}
+function soundControls(){var a=animAC(),now=a.currentTime;alfo(200,0.3,15,'sine',0.02,now,4.0);anoise(0.07,now+0.1,0.2,700,0.5);anoise(0.04,now+0.25,0.12,900,0.6);anoise(0.03,now+0.4,0.08,500,0.4);aosc(55,'sine',0.14,now+1.5,0.1,0.002,0.06);anoise(0.10,now+1.5,0.08,300,0.4);aosc(120,'square',0.04,now+1.5,0.05,0.002,0.03);aosc(800,'square',0.05,now+2.8,0.02,0.001,0.015);aosc(700,'square',0.04,now+2.83,0.02,0.001,0.015);aosc(180,'triangle',0.02,now+3.2,0.8,0.1,0.3);}
+function animKB(c,t,isStatic){
+  var phase=isStatic?'headline':t<0.2?'room':t<0.55?'paper':t<0.8?'headline':'reaction';
+  arect(c,0,0,GW,GH,'#1A1A14');arect(c,4,28,100,22,'#2A1A0A');ahline(c,4,28,100,'#3A2A1A');adither(c,4,28,100,22,'#2A1A0A','#221408');adither(c,4,40,100,10,'#1E1408','#2A1A0A');
+  [[6,20],[18,20],[30,20],[42,20],[54,20],[66,20],[78,20],[90,20]].forEach(function(l){arect(c,l[0],22,8,7,'#1A1A1A');arect(c,l[0]+1,23,6,5,'#2A2A2A');avline(c,l[0]+3,18,5,'#1A1A1A');arect(c,l[0]+1,17,6,2,'#1A1A1A');});
+  [[6,50],[18,50],[30,50],[42,50],[54,50],[66,50],[78,50],[90,50]].forEach(function(l){arect(c,l[0],50,8,7,'#1A1A1A');arect(c,l[0]+1,51,6,5,'#2A2A2A');avline(c,l[0]+3,56,5,'#1A1A1A');});
+  arect(c,0,0,GW,18,P.CHAR);adither(c,0,0,GW,18,'#1A1A1A','#141414');arect(c,30,0,48,3,'#D8D0B0');adither(c,30,3,48,10,'#D8D090','#1A1A10');
+  arect(c,0,0,4,28,'#1A2030');for(var b=0;b<5;b++)ahline(c,0,b*5+1,4,b%2===0?'#1E2838':'#141820');
+  afcircle(c,GW-12,10,7,'#2C3E35');acircle(c,GW-12,10,7,'#3D5247');agtext(c,'KIS',GW-16,13,'#3D5247',5);
+  if(phase!=='room'){var personX=48,personY=20;arect(c,personX,personY+2,8,10,'#2A2A3A');arect(c,personX+2,personY-4,5,5,'#C8A882');arect(c,personX+2,personY-4,5,2,'#1A1A1A');var paperPhase=phase==='paper'?(t-0.2)/0.35:1,paperW=Math.floor(paperPhase*32);if(paperW>0){arect(c,personX-paperW/2,personY-2,paperW,16,P.NEWSPRINT);adither(c,personX-paperW/2,personY-2,paperW,16,'#E8E4D8','#F0ECD8');avline(c,personX+2,personY-2,16,'#C0BCB0');if(paperW>16){arect(c,personX-paperW/2,personY-2,paperW,3,'#1A1A1A');agtext(c,'DEFENSE INDUSTRY HERALD',personX-paperW/2+1,personY+1,P.LGREY,4);}if(paperW>20){var headline='KASSEL-BRANDT SECURES',sub='MAJOR DEFENSE CONTRACT',vis=phase==='headline'||phase==='reaction'?headline.length:Math.floor((t-0.55)/0.25*headline.length);agtext(c,headline.slice(0,vis),personX-paperW/2+1,personY+7,'#1A1A1A',5);if(vis>=headline.length&&(phase==='headline'||phase==='reaction'))agtext(c,sub,personX-paperW/2+1,personY+12,'#3A3A3A',4);}arect(c,personX-1,personY+3,3,5,P.CREAM);arect(c,personX+6,personY+3,3,5,P.CREAM);}}
+  if(phase==='reaction'){var reactX=80;arect(c,reactX,22,6,8,'#2A2A3A');arect(c,reactX+1,19,4,4,'#C8A882');arect(c,reactX+1,19,4,2,'#3A2A1A');arect(c,reactX-6,14,8,6,'#2A3A3A');ahline(c,reactX-6,14,8,P.STEEL);ahline(c,reactX-6,19,8,P.STEEL);avline(c,reactX-6,14,6,P.STEEL);avline(c,reactX+1,14,6,P.STEEL);apx(c,reactX-3,20,P.STEEL);apx(c,reactX-2,21,P.STEEL);}
+  arect(c,0,56,GW,12,P.METALDARK);ahline(c,0,56,GW,'#1A2A2A');agtext(c,'KASSEL-BRANDT WINS CONTRACT',3,62,P.RUST,5);agtext(c,'MODULE 7',GW-28,5,P.RUST,5);aborder(c,P.RUST);
+}
+function soundKB(){var a=animAC(),now=a.currentTime;alfo(150,0.1,10,'sine',0.015,now,4.5);anoise(0.06,now+0.4,0.2,800,0.5);anoise(0.04,now+0.55,0.15,600,0.4);anoise(0.03,now+0.7,0.1,700,0.5);var hl='KASSEL-BRANDT SECURES MAJOR';hl.split('').forEach(function(ch,i){if(ch!==' ')atick(250+Math.random()*150,0.04,now+1.1+i*0.065);});anoise(0.07,now+1.1+hl.length*0.065+0.05,0.1,400,0.6);aosc(280,'square',0.05,now+1.1+hl.length*0.065+0.05,0.08,0.002,0.04);aosc(220,'triangle',0.02,now+3.5,0.8,0.2,0.4);}
+function animMedia(c,t,isStatic){
+  var ringing=!isStatic&&Math.floor(t*5)%2===0,shake=ringing?1:0;
+  arect(c,0,0,GW,GH,'#1A2020');arect(c,10,30,88,22,P.WOODDK);ahline(c,10,30,88,P.WOODLT);adither(c,10,30,88,22,P.WOODDK,P.WOODGRAIN);arect(c,10,38,88,14,P.WOODLT);ahline(c,10,38,88,'#2A1A0A');arect(c,42,40,24,10,'#2C3E35');agtext(c,'KINGSPORT',43,48,P.STEEL,5);
+  afcircle(c,5,28,4,'#2A5A2A');afcircle(c,4,26,3,'#3A6A3A');arect(c,3,32,5,6,'#5A3010');afcircle(c,GW-5,28,4,'#2A5A2A');afcircle(c,GW-4,26,3,'#3A6A3A');arect(c,GW-7,32,5,6,'#5A3010');
+  arect(c,0,0,GW,10,'#1E2828');for(var x=0;x<GW;x+=16)avline(c,x,0,10,'#141E1E');for(var y=0;y<10;y+=5)ahline(c,0,y,GW,'#141E1E');arect(c,30,0,48,2,P.LGREY);adither(c,30,2,48,8,'#B8D8B8','#1A2020');
+  var phoneX=55+shake,phoneY=24;arect(c,phoneX,phoneY+4,18,8,P.PHONEGREY);arect(c,phoneX+1,phoneY+5,16,6,'#3A3A3A');for(var r=0;r<2;r++)for(var col2=0;col2<4;col2++)arect(c,phoneX+2+col2*3,phoneY+6+r*2,2,1,'#4A4A4A');
+  var handsetY=phoneY+(ringing?2:4);arect(c,phoneX-6,handsetY,8,14,P.PHONEGREY);arect(c,phoneX-5,handsetY+1,6,3,'#4A4A4A');arect(c,phoneX-5,handsetY+9,6,3,'#4A4A4A');if(ringing){acircle(c,phoneX-2,handsetY+6,3,'#3A5A3A');acircle(c,phoneX-2,handsetY+6,5,'#2A4A2A');}
+  if(t>0.3||isStatic){var bubT=isStatic?1:Math.min(1,(t-0.3)/0.2),bx=12,by=8,bw=Math.floor(bubT*36),bh=16;if(bw>2){arect(c,bx,by,bw,bh,'#1E3A3A');if(bw>10){arect(c,bx+2,by+2,8,11,P.CREAM);ahline(c,bx+2,by+2,8,'#C0BCB0');for(var l=0;l<4;l++)ahline(c,bx+3,by+4+l*2,6,'#A0A090');agtext(c,'?',bx+13,by+11,P.GOLD,9);}if(bw>28)agtext(c,'REGIONAL ENVIRO.',bx+2,by+22,P.STEEL,4);apx(c,bx+bw,by+8,P.TEAL);apx(c,bx+bw+1,by+9,P.GOLD);}}
+  arect(c,0,56,GW,12,P.METALDARK);ahline(c,0,56,GW,'#1A2A2A');agtext(c,'MEDIA INQUIRY - TCE READINGS',3,62,P.GOLD,5);agtext(c,'MODULE 7',GW-28,5,P.RUST,5);aborder(c,P.GOLD);
+}
+function soundMedia(){var a=animAC(),now=a.currentTime;alfo(180,0.2,12,'sine',0.015,now,4.5);function ring(t2){aosc(480,'square',0.09,t2,0.2,0.008,0.06);aosc(420,'square',0.07,t2+0.22,0.2,0.008,0.06);}ring(now+0.2);ring(now+0.8);ring(now+1.4);ring(now+2.0);ring(now+2.6);anoise(0.04,now+0.2,0.05,400,1.0);anoise(0.04,now+0.8,0.05,400,1.0);anoise(0.04,now+1.4,0.05,400,1.0);ring(now+3.2);ring(now+3.8);}
+function animITAR(c,t,isStatic){
+  var phase=isStatic?'stamp':t<0.3?'ticking':t<0.55?'rushing':t<0.75?'stamp':'aftermath';
+  arect(c,0,0,GW,GH,'#141018');arect(c,0,0,22,52,'#100C14');
+  for(var r=0;r<5;r++){for(var b=0;b<5;b++){var bookCol=['#1A2A4A','#2A1A1A','#1A2A2A','#2A1A2A','#1A1A2A'][b%5];arect(c,1+b*4,2+r*9,3,8,bookCol);ahline(c,1+b*4,2+r*9,3,'#2A2A3A');}}
+  avline(c,22,0,52,'#2A2030');arect(c,86,0,22,52,'#100C14');for(var r=0;r<5;r++){for(var b=0;b<4;b++){var bc2=['#2A1A4A','#1A2A1A','#2A2A1A','#1A2A3A'][b%4];arect(c,87+b*4,2+r*9,3,8,bc2);}}
+  avline(c,86,0,52,'#2A2030');arect(c,0,52,GW,16,P.WOODDK);ahline(c,0,52,GW,P.WOODLT);adither(c,0,52,GW,16,P.WOODDK,P.WOODGRAIN);for(var s=0;s<4;s++){arect(c,3+s,50-s,20,2,P.CREAM);ahline(c,3+s,50-s,20,'#D0D0C0');}arect(c,GW-25,48,20,12,P.PAPERYELLOW);for(var l=0;l<4;l++)ahline(c,GW-24,51+l*2,18,'#C8C090');
+  var clockX=54,clockY=22,clockR=16;arect(c,clockX-clockR-2,clockY-clockR-2,clockR*2+5,clockR*2+5,'#1A1A14');arect(c,clockX-clockR-1,clockY-clockR-1,clockR*2+3,clockR*2+3,'#2A2820');afcircle(c,clockX,clockY,clockR,P.CLOCKFACE);
+  for(var h=0;h<12;h++){var a2=h*Math.PI/6-Math.PI/2,r2=h%3===0?clockR-2:clockR-3;apx(c,clockX+Math.round(Math.cos(a2)*r2),clockY+Math.round(Math.sin(a2)*r2),'#4A4030');}
+  var baseAngle=-Math.PI/2,secA,minA;if(phase==='ticking'){secA=baseAngle+t*Math.PI*4;minA=baseAngle+t*Math.PI*0.3;}else if(phase==='rushing'){secA=baseAngle+0.3*Math.PI*4+(t-0.3)*Math.PI*20;minA=baseAngle+0.3*Math.PI*0.3+(t-0.3)*Math.PI*3;}else{secA=baseAngle+0.3*Math.PI*4+0.25*Math.PI*20;minA=baseAngle+0.3*Math.PI*0.3+0.25*Math.PI*3;}
+  for(var i=1;i<=clockR-5;i++)apx(c,clockX+Math.round(Math.cos(minA)*i),clockY+Math.round(Math.sin(minA)*i),'#2A2820');var handCol=phase==='rushing'?P.RUST:'#3A3830';for(var i=1;i<=clockR-3;i++)apx(c,clockX+Math.round(Math.cos(secA)*i),clockY+Math.round(Math.sin(secA)*i),handCol);afcircle(c,clockX,clockY,2,'#2A2820');
+  if(phase==='stamp'||phase==='aftermath'){[[clockX+clockR-2,clockY+clockR-3],[clockX+clockR-1,clockY+clockR-2],[clockX+clockR,clockY+clockR-1],[clockX+clockR-1,clockY+clockR]].forEach(function(xy){apx(c,xy[0],xy[1],P.RUST);});}
+  if(phase==='stamp'||phase==='aftermath'){var sT=phase==='stamp'?(t-0.55)/0.2:1,stampY=isStatic?38:Math.max(38,58-Math.floor(sT*20));arect(c,26,stampY,56,11,P.RUST);arect(c,27,stampY+1,54,9,'#8A1A1A');arect(c,44,stampY-6,18,6,'#6A5040');arect(c,47,stampY-9,12,4,'#5A4030');agtext(c,'RESPONSE REQUIRED',28,stampY+8,P.CREAM,5);}
+  var daysLeft=phase==='ticking'?30:phase==='rushing'?Math.floor((1-(t-0.3)/0.25)*30):0;if(phase!=='stamp'&&phase!=='aftermath'){arect(c,26,42,20,7,'#0A0A10');agtext(c,daysLeft+' DAYS',28,48,daysLeft<10?P.WARN:P.STEEL,6);}
+  arect(c,0,56,GW,12,P.METALDARK);ahline(c,0,56,GW,'#1A2020');agtext(c,'ITAR INQUIRY - RESPONSE DEADLINE',3,62,P.RUST,5);agtext(c,'MODULE 8',GW-28,5,P.RUST,5);aborder(c,P.RUST);
+}
+function soundITAR(){var a=animAC(),now=a.currentTime;for(var i=0;i<16;i++)aosc(600,'square',0.025+i*0.004,now+i*0.19,0.03,0.001,0.015);asweep(150,900,'sawtooth',0.12,now+2.9,0.5);anoise(0.08,now+2.9,0.3,400,0.5);aosc(40,'sine',0.20,now+3.5,0.12,0.001,0.06);anoise(0.14,now+3.5,0.10,350,0.4);aosc(200,'square',0.06,now+3.5,0.06,0.002,0.03);anoise(0.08,now+3.55,0.06,2000,2.0);aosc(80,'sine',0.04,now+3.8,1.0,0.2,0.4);}
+function animTitanium(c,t,isStatic){
+  var phase=isStatic?'spike':t<0.25?'normal':t<0.55?'rising':t<0.75?'spike':'alarm';
+  arect(c,0,0,GW,GH,'#060810');arect(c,0,54,GW,14,'#0A0C14');for(var x=0;x<GW;x+=14)avline(c,x,54,14,'#0E1018');arect(c,0,0,GW,8,'#0A0C14');arect(c,0,2,GW,3,'#0E1018');for(var x=0;x<GW;x+=8)avline(c,x,2,3,'#0A0C14');
+  var mon1X=4,mon1Y=10,mon1W=28,mon1H=30;arect(c,mon1X,mon1Y,mon1W,mon1H,P.CHAR);arect(c,mon1X+1,mon1Y+1,mon1W-2,mon1H-2,'#0A1010');arect(c,mon1X+2,mon1Y+2,mon1W-4,mon1H-4,P.CHARTBG);agtext(c,'Cu COPPER',mon1X+2,mon1Y+6,P.STEEL,4);ahline(c,mon1X+2,mon1Y+7,mon1W-4,'#1A2828');for(var x=0;x<mon1W-6;x++){var h2=Math.round(8+Math.sin(x*0.4+t*2)*2+Math.cos(x*0.7)*1.5);avline(c,mon1X+3+x,mon1Y+mon1H-4-h2,h2,'#20A030');}arect(c,mon1X,mon1Y+mon1H,mon1W,4,P.DGREY);
+  var mon2X=40,mon2Y=8,mon2W=36,mon2H=36;arect(c,mon2X,mon2Y,mon2W,mon2H,P.CHAR);arect(c,mon2X+1,mon2Y+1,mon2W-2,mon2H-2,'#0A0808');arect(c,mon2X+2,mon2Y+2,mon2W-4,mon2H-4,'#060608');agtext(c,'Ti TITANIUM',mon2X+2,mon2Y+7,phase==='spike'||phase==='alarm'?P.WARN:P.STEEL,4);ahline(c,mon2X+2,mon2Y+8,mon2W-4,'#1A1828');
+  for(var x=0;x<mon2W-6;x++){var xT=x/(mon2W-7),h2;if(xT<0.65){h2=Math.round(8+Math.sin(xT*6)*1.5+Math.cos(xT*10)*1);}else{var st2=(xT-0.65)/0.35,spikeProg=phase==='normal'?0:phase==='rising'?Math.min(1,(t-0.25)/0.3*st2):Math.min(1,st2);h2=Math.round(8+spikeProg*22);}avline(c,mon2X+3+x,mon2Y+mon2H-4-h2,h2,xT>0.65?P.WARN:P.STEEL);}
+  if(phase==='spike'||phase==='alarm'||isStatic){arect(c,mon2X+mon2W-16,mon2Y+4,14,6,P.RUST);agtext(c,'+14%',mon2X+mon2W-14,mon2Y+9,P.CREAM,5);}
+  if(phase==='alarm'&&Math.floor(t*8)%2===0){arect(c,mon2X+1,mon2Y+1,mon2W-2,mon2H-2,'#1A0808');ahline(c,mon2X+1,mon2Y+1,mon2W-2,P.RUST);ahline(c,mon2X+1,mon2Y+mon2H-2,mon2W-2,P.RUST);}arect(c,mon2X,mon2Y+mon2H,mon2W,5,P.DGREY);
+  var mon3X=80,mon3Y=10,mon3W=24,mon3H=28;arect(c,mon3X,mon3Y,mon3W,mon3H,P.CHAR);arect(c,mon3X+1,mon3Y+1,mon3W-2,mon3H-2,'#080A10');arect(c,mon3X+2,mon3Y+2,mon3W-4,mon3H-4,'#060810');agtext(c,'Ni NICKEL',mon3X+2,mon3Y+6,P.STEEL,4);for(var x=0;x<mon3W-6;x++){var h2=Math.round(6+Math.sin(x*0.5+t*1.5)*2+Math.cos(x*0.8+1)*1);avline(c,mon3X+3+x,mon3Y+mon3H-4-h2,h2,'#2040A0');}arect(c,mon3X,mon3Y+mon3H,mon3W,4,P.DGREY);
+  if(phase==='spike'||phase==='alarm'){var figX=32,figY=46;arect(c,figX,figY-8,6,10,'#2A2A3A');arect(c,figX+1,figY-12,4,5,'#C8A882');arect(c,figX+5,figY-8,6,2,P.CREAM);}
+  arect(c,0,56,GW,12,P.METALDARK);ahline(c,0,56,GW,'#0A1020');agtext(c,'TITANIUM SPOT: +38%  BRAUER-HECHT: +14%',2,62,phase==='spike'||phase==='alarm'?P.WARN:P.STEEL,5);agtext(c,'No hedge in place.',2,67,P.RUST,4,false);agtext(c,'MODULE 8',GW-28,5,P.RUST,5);aborder(c,phase==='spike'||phase==='alarm'?P.RUST:'#1A3050');
+}
+function soundTitanium(){var a=animAC(),now=a.currentTime;alfo(120,0.5,8,'sine',0.04,now,4.5);for(var i=0;i<20;i++)atick(120+Math.random()*80,0.025,now+i*0.06+Math.random()*0.02);asweep(220,660,'triangle',0.08,now+0.6,1.5);aosc(440,'triangle',0.05,now+1.0,1.0,0.08,0.3);aosc(466,'triangle',0.04,now+1.1,0.9,0.08,0.3);aosc(1400,'square',0.11,now+2.2,0.12,0.002,0.04);asweep(900,200,'sawtooth',0.10,now+2.25,0.5);for(var i=0;i<10;i++)atick(200+i*100,0.05,now+2.3+i*0.05);for(var i=0;i<4;i++){aosc(880,'square',0.09,now+2.9+i*0.4,0.15,0.004,0.05);aosc(660,'square',0.07,now+3.1+i*0.4,0.15,0.004,0.05);}aosc(82,'sine',0.06,now+2.8,1.5,0.2,0.5);}
+function animPatch(c,t,isStatic){
+  var phase=isStatic?'error':t<0.15?'desktop':t<0.55?'progress':t<0.7?'freeze':'error';
+  arect(c,0,0,GW,GH,P.WINTEAL);
+  if(phase==='desktop'||phase==='progress'){[[4,4,'NETWORK'],[4,18,'DOCS'],[4,32,'CMD']].forEach(function(ic){var ix=ic[0],iy=ic[1],label=ic[2];arect(c,ix,iy,12,10,'#0000A8');arect(c,ix+1,iy+1,10,8,'#2020B8');if(label==='NETWORK'){afcircle(c,ix+6,iy+5,3,'#A0A0FF');apx(c,ix+6,iy+2,'#A0A0FF');apx(c,ix+6,iy+8,'#A0A0FF');}agtext(c,label,ix,iy+14,P.WHITE,4);});}
+  arect(c,0,60,GW,8,P.WINGREY);ahline(c,0,60,GW,P.WHITE);arect(c,0,60,14,8,P.WINGREY);ahline(c,0,60,14,P.WHITE);avline(c,14,60,8,P.WINDK);agtext(c,'Start',1,66,'#000000',5);agtext(c,'14:37',GW-22,66,'#000000',5);
+  var winX=12,winY=6,winW=84,winH=50;arect(c,winX+2,winY+2,winW,winH,'#808080');arect(c,winX,winY,winW,winH,P.SCREENGREY);arect(c,winX,winY,winW,8,P.WINBLUE);agtext(c,'KIS Patch Deployer v1.2',winX+2,winY+6,P.WHITE,5);arect(c,winX+winW-18,winY+1,5,6,P.WINGREY);agtext(c,'_',winX+winW-17,winY+6,'#000000',5);arect(c,winX+winW-12,winY+1,5,6,P.WINGREY);arect(c,winX+winW-6,winY+1,5,6,P.WINGREY);agtext(c,'x',winX+winW-5,winY+6,'#000000',5);
+  arect(c,winX+2,winY+9,winW-4,winH-11,P.WHITE);agtext(c,'Deploying security patch KB-2024-11...',winX+4,winY+15,'#000000',4);agtext(c,'Target: Production Scheduling System',winX+4,winY+20,'#000000',4);agtext(c,'Status:',winX+4,winY+25,'#000000',4);
+  var fillW=Math.floor(Math.min(0.73,isStatic?0.73:(phase==='progress'?(t-0.15)/0.4*0.73:0.73))*(winW-16));arect(c,winX+4,winY+27,winW-8,7,P.WINDK);arect(c,winX+5,winY+28,winW-10,5,P.WHITE);if(fillW>0){arect(c,winX+5,winY+28,fillW,5,phase==='freeze'||phase==='error'||isStatic?P.ERRRED:P.PROGBLUE);}
+  var pct=isStatic?73:phase==='progress'?Math.floor((t-0.15)/0.4*73):73;agtext(c,pct+'%',winX+winW/2-6,winY+33,'#000000',5);agtext(c,'[OK] Connecting to target system...',winX+4,winY+38,'#008000',4);agtext(c,'[OK] Validating patch signature...',winX+4,winY+42,'#008000',4);if(pct>40)agtext(c,'[OK] Beginning file transfer...',winX+4,winY+46,'#008000',4);
+  if(phase==='freeze'&&Math.floor(t*15)%4===0){c.fillStyle='rgba(255,255,255,0.15)';c.fillRect(winX*S3,winY*S3,winW*S3,winH*S3);}
+  if(phase==='error'||isStatic){var eX=winX+8,eY=winY+10,eW=68,eH=30;arect(c,eX+2,eY+2,eW,eH,'#808080');arect(c,eX,eY,eW,eH,P.NAVY);arect(c,eX,eY,eW,7,'#0A1A2A');ahline(c,eX,eY,eW,P.STEEL);agtext(c,'System Error',eX+14,eY+5,P.WHITE,5);afcircle(c,eX+8,eY+17,5,'#0A1A2A');agtext(c,'!',eX+6,eY+20,P.RUST,7);acircle(c,eX+8,eY+17,5,P.STEEL);arect(c,eX+eW-8,eY+1,6,5,P.WINBLUE);agtext(c,'x',eX+eW-7,eY+5,P.WHITE,5);agtext(c,'UNEXPECTED SHUTDOWN',eX+16,eY+13,P.WHITE,5);agtext(c,'Production Scheduling',eX+16,eY+18,P.STEEL,4);agtext(c,'System offline.',eX+16,eY+22,P.STEEL,4);agtext(c,'Systems affected: 1',eX+16,eY+27,P.CREAM,4);var fb=isStatic||Math.floor(t*3)%2===0;arect(c,eX+eW/2-10,eY+eH-7,20,5,fb?P.WINGREY:'#A0A0A0');agtext(c,'   OK',eX+eW/2-10,eY+eH-3,'#000000',5);}
+  agtext(c,'MODULE 8',GW-28,5,P.RUST,5);aborder(c,phase==='error'?P.NAVY:P.TEAL);
+}
+function soundPatch(){var a=animAC(),now=a.currentTime;alfo(60,0.4,4,'sine',0.04,now,4.5);for(var i=0;i<18;i++)atick(180+i*15,0.035,now+0.2+i*0.1);for(var i=0;i<4;i++){anoise(0.04,now+2.0+i*0.06,0.04,800,1.5);aosc(200+i*50,'square',0.03,now+2.0+i*0.06,0.03,0.001,0.02);}aosc(587,'triangle',0.11,now+2.5,0.3,0.02,0.12);aosc(494,'triangle',0.10,now+2.82,0.3,0.02,0.12);aosc(440,'triangle',0.09,now+3.12,0.4,0.02,0.18);aosc(110,'sine',0.05,now+2.4,2.0,0.15,0.4);atick(500,0.06,now+3.9);anoise(0.03,now+3.9,0.025,600,1.0);}
+var ANIM_EVENTS={
+  equip1:{fn:animEquip1,snd:soundEquip1,dur:4200,bg:P.IRON,name:'Equipment Malfunction',module:'Module 5'},
+  equip2:{fn:animEquip2,snd:soundEquip2,dur:4000,bg:P.IRON,name:'Equipment Malfunction',module:'Module 6'},
+  controls:{fn:animControls,snd:soundControls,dur:4200,bg:'#1A1408',name:'Internal Controls Flag',module:'Module 6'},
+  kb:{fn:animKB,snd:soundKB,dur:4500,bg:'#1A1A14',name:'Kassel-Brandt Announcement',module:'Module 7'},
+  media:{fn:animMedia,snd:soundMedia,dur:4500,bg:'#1A2020',name:'Media Inquiry',module:'Module 7'},
+  masdep:{fn:drawMasDEP,snd:soundMasDEPHQ,dur:4200,bg:'#1A2030',name:'MassDEP Compliance Notice',module:'Module 7'},
+  cyber:{fn:drawCyberIncident,snd:soundCyberHQ,dur:4500,bg:'#080E0E',name:'Cybersecurity Incident',module:'Module 7'},
+  itar:{fn:animITAR,snd:soundITAR,dur:4500,bg:'#141018',name:'ITAR Deadline',module:'Module 8'},
+  titanium:{fn:animTitanium,snd:soundTitanium,dur:4500,bg:'#060810',name:'Titanium Price Event',module:'Module 8'},
+  brauer:{fn:drawBrauerHecht,snd:soundBrauerHechtHQ,dur:4200,bg:'#060E10',name:'Brauer-Hecht Price Increase',module:'Module 8'},
+  equip3:{fn:drawProductionFloor,snd:soundEquip3HQ,dur:4800,bg:P.IRON,name:'Equipment Failure',module:'Module 8'},
+  patch:{fn:animPatch,snd:soundPatch,dur:4500,bg:P.WINTEAL,name:'Patch Deployment Outage',module:'Module 8'}
+};
+var _animRAF=null;
+function playAnimOverlay(evKey,onDismiss){
+  if(evKey==='patch'&&!S.mods.cyberAudit){if(onDismiss)onDismiss();return;}
+  var ev=ANIM_EVENTS[evKey];if(!ev){if(onDismiss)onDismiss();return;}
+  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+  var header=document.createElement('div');
+  header.style.cssText='background:#0D1F1F;border:2px solid #B8A46A;border-bottom:none;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;width:'+(GW*S3+4)+'px;box-sizing:border-box;';
+  var titleBlock=document.createElement('div');
+  var modLine=document.createElement('div');modLine.style.cssText='font-family:Courier New,monospace;font-size:9px;letter-spacing:2px;color:#9AADA8;text-transform:uppercase;margin-bottom:2px;';modLine.textContent=ev.module;
+  var nameLine=document.createElement('div');nameLine.style.cssText='font-family:Courier New,monospace;font-size:11px;letter-spacing:1px;color:#F5F0E8;text-transform:uppercase;';nameLine.textContent=ev.name;
+  titleBlock.appendChild(modLine);titleBlock.appendChild(nameLine);header.appendChild(titleBlock);
+  var skipBtn=document.createElement('button');skipBtn.textContent='SKIP';skipBtn.style.cssText='background:#0D1F1F;border:1px solid #3D4A4A;color:#9AADA8;font-family:Courier New,monospace;font-size:9px;letter-spacing:2px;padding:4px 10px;cursor:pointer;text-transform:uppercase;';
+  skipBtn.onmouseover=function(){skipBtn.style.borderColor='#B8A46A';skipBtn.style.color='#B8A46A';};skipBtn.onmouseout=function(){skipBtn.style.borderColor='#3D4A4A';skipBtn.style.color='#9AADA8';};header.appendChild(skipBtn);
+  var canvasWrap=document.createElement('div');canvasWrap.style.cssText='border:2px solid #B8A46A;border-top:none;overflow:hidden;line-height:0;';
+  var cv=document.createElement('canvas');cv.width=GW*S3;cv.height=GH*S3;cv.style.cssText='display:block;image-rendering:pixelated;image-rendering:crisp-edges;width:'+(GW*S3)+'px;height:'+(GH*S3)+'px;';
+  canvasWrap.appendChild(cv);overlay.appendChild(header);overlay.appendChild(canvasWrap);document.body.appendChild(overlay);
+  var ctx=cv.getContext('2d');aclear(ctx,ev.bg);ev.fn(ctx,0,true);
+  animAC();ev.snd();
+  var start=performance.now();
+  function dismiss(){if(_animRAF){cancelAnimationFrame(_animRAF);_animRAF=null;}if(overlay.parentNode)overlay.parentNode.removeChild(overlay);if(onDismiss)onDismiss();}
+  skipBtn.onclick=dismiss;
+  function frame(now2){var t=Math.min((now2-start)/ev.dur,1);aclear(ctx,ev.bg);ev.fn(ctx,t,false);if(t<1){_animRAF=requestAnimationFrame(frame);}else dismiss();}
+  _animRAF=requestAnimationFrame(frame);
+}
+async function trySave(){try{if(!window.storage)return;await window.storage.set('kingsport:state',JSON.stringify(S));await window.storage.set('kingsport:sel',JSON.stringify(SEL));}catch(e){}}
+async function tryLoad(){try{if(!window.storage)return false;var sr=await window.storage.get('kingsport:state');var selr=await window.storage.get('kingsport:sel');if(sr&&sr.value)Object.assign(S,JSON.parse(sr.value));if(selr&&selr.value)Object.assign(SEL,JSON.parse(selr.value));return !!(sr&&sr.value);}catch(e){return false;}}
+var audioCtx=null,masterGain=null;
+var currentMusicState=-1,strangeActive=false,mutedAudio=false;
+var stateNodes=[],decisionNodes=[],strangeOsc=null,strangeGainNode=null;
+var A4=440;
+function midiToHz(m){return A4*Math.pow(2,(m-69)/12);}
+var D2=38,F2=41,A2=45,C3=48,D3=50,E3=52,F3=53,G3=55,A3=57,Bb3=58,C4=60,D4=62,E4=64,F4=65,G4=67,A4n=69,Bb4=70,C5=72;
+function hz(m){return midiToHz(m);}
+function initAudio(){if(audioCtx)return;audioCtx=new(window.AudioContext||window.webkitAudioContext)();masterGain=audioCtx.createGain();masterGain.gain.value=mutedAudio?0:0.65;masterGain.connect(audioCtx.destination);}
+function oscN(f,type,gain,t,det){det=det||0;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=f;o.detune.value=det;g.gain.value=0;o.connect(g);g.connect(masterGain);o.start(t);g.gain.setTargetAtTime(gain,t,0.4);return{o:o,g:g,base:gain};}
+function schedN(f,type,gain,t,dur,atk,rel){atk=atk||0.05;rel=rel||0.15;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=f;g.gain.value=0;o.connect(g);g.connect(masterGain);o.start(t);g.gain.setTargetAtTime(gain,t,atk);g.gain.setTargetAtTime(0,t+dur,rel);o.stop(t+dur+1);return{o:o,g:g};}
+function fadeNodes(nodes,time){time=time||0.6;nodes.forEach(function(n){if(!n)return;if(n.g){try{n.g.gain.setTargetAtTime(0,audioCtx.currentTime,time);}catch(e){}}if(n.o){try{n.o.stop(audioCtx.currentTime+time*4+1);}catch(e){}}if(n._int)clearInterval(n._int);if(n._rt)clearTimeout(n._rt);if(n._tos)n._tos.forEach(function(t){clearTimeout(t);});});}
+function buildTitle(){var ns=[],t=audioCtx.currentTime+0.1;ns.push(oscN(hz(D2),'sine',0.20,t));ns.push(oscN(hz(D3),'sine',0.14,t));ns.push(oscN(hz(F2),'triangle',0.10,t));ns.push(oscN(hz(F3),'triangle',0.08,t));ns.push(oscN(hz(A2),'sine',0.07,t));ns.push(oscN(hz(C3),'sine',0.05,t));var tos=[];var mel=[{m:D4,d:0.8,g:0.07},{m:F4,d:0.6,g:0.06},{m:A4n,d:1.0,g:0.08},{m:G4,d:0.5,g:0.05},{m:F4,d:1.2,g:0.06},{m:E4,d:0.6,g:0.05},{m:D4,d:1.8,g:0.07}];function playMel(s){var pt=s;mel.forEach(function(n){ns.push(schedN(hz(n.m),'triangle',n.g,pt,n.d,0.08,0.2));pt+=n.d+0.1;});}tos.push(setTimeout(function(){if(currentMusicState===0)playMel(audioCtx.currentTime+0.5);},800));tos.push(setTimeout(function(){if(currentMusicState===0)playMel(audioCtx.currentTime+0.5);},9000));var once=[{m:A4n,d:0.9,g:0.055},{m:C5,d:0.7,g:0.045},{m:Bb4,d:0.8,g:0.040},{m:A4n,d:1.4,g:0.050}];tos.push(setTimeout(function(){if(currentMusicState!==0)return;var pt=audioCtx.currentTime+0.1;once.forEach(function(n){ns.push(schedN(hz(n.m),'sine',n.g,pt,n.d,0.12,0.3));pt+=n.d+0.15;});},6000));var ctr=[{m:F3,d:1.2,g:0.045},{m:G3,d:0.8,g:0.040},{m:A3,d:1.0,g:0.050},{m:F3,d:1.5,g:0.040}];tos.push(setTimeout(function(){if(currentMusicState!==0)return;var pt=audioCtx.currentTime+0.2;ctr.forEach(function(n){ns.push(schedN(hz(n.m),'triangle',n.g,pt,n.d,0.1,0.2));pt+=n.d+0.05;});},3500));ns._tos=tos;var phase=0,chords=[{g:[1.0,1.0,1.0]},{g:[1.1,0.9,0.8]},{g:[0.9,1.2,0.9]},{g:[0.8,1.0,1.1]}];var ci=setInterval(function(){if(currentMusicState!==0){clearInterval(ci);return;}phase=(phase+1)%4;var p=chords[phase];if(ns[2]&&ns[2].g)ns[2].g.gain.setTargetAtTime(0.10*p.g[0],audioCtx.currentTime,1.8);if(ns[3]&&ns[3].g)ns[3].g.gain.setTargetAtTime(0.08*p.g[1],audioCtx.currentTime,1.8);if(ns[4]&&ns[4].g)ns[4].g.gain.setTargetAtTime(0.07*p.g[2],audioCtx.currentTime,1.8);},7300);ns._int=ci;return ns;}
+function buildMeridian(){var ns=[],t=audioCtx.currentTime+0.1;ns.push(oscN(hz(D2),'sine',0.16,t));ns.push(oscN(hz(D3),'sine',0.11,t));ns.push(oscN(hz(F3),'triangle',0.08,t,-5));ns.push(oscN(hz(A3),'triangle',0.06,t));ns.push(oscN(hz(C4),'sine',0.04,t));var walk=[{m:D4,g:0.055,w:0},{m:F4,g:0.045,w:1.6},{m:E4,g:0.040,w:2.7},{m:D4,g:0.050,w:4.2},{m:C4,g:0.045,w:5.4},{m:Bb3,g:0.040,w:7.5},{m:D4,g:0.048,w:8.5},{m:A3,g:0.052,w:10.2},{m:F3,g:0.038,w:12.2},{m:D3,g:0.045,w:13.0}];function schedWalk(base){walk.forEach(function(n){ns.push(schedN(hz(n.m),'triangle',n.g,base+n.w,1.2,0.07,0.25));});}schedWalk(t+0.5);var wl=setInterval(function(){if(currentMusicState!==1){clearInterval(wl);return;}schedWalk(audioCtx.currentTime+0.2);},15500);ns._int=wl;ns._tos=[];setInterval(function(){if(currentMusicState!==1||!ns[0])return;ns[0].g.gain.setTargetAtTime(0.16+(Math.random()*0.04-0.02),audioCtx.currentTime,2.5);},6800);return ns;}
+function buildKingsport(){var ns=[],t=audioCtx.currentTime+0.1;ns.push(oscN(hz(D2),'sawtooth',0.07,t));ns.push(oscN(hz(33),'sine',0.14,t));ns.push(oscN(hz(G3-12),'sine',0.16,t));ns.push(oscN(hz(Bb3-12),'triangle',0.10,t));ns.push(oscN(hz(D3),'triangle',0.09,t,-10));ns.push(oscN(hz(F3),'sine',0.06,t));function kick(time){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(hz(D2)*1.5,time);o.frequency.exponentialRampToValueAtTime(hz(D2)*0.5,time+0.12);g.gain.value=0;g.gain.setTargetAtTime(0.22,time,0.003);g.gain.setTargetAtTime(0,time+0.08,0.04);o.connect(g);g.connect(masterGain);o.start(time);o.stop(time+0.5);}function accent(time){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=hz(Bb3);g.gain.value=0;g.gain.setTargetAtTime(0.10,time,0.005);g.gain.setTargetAtTime(0,time+0.05,0.03);o.connect(g);g.connect(masterGain);o.start(time);o.stop(time+0.3);}function ghost(time){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=hz(G3-12);g.gain.value=0;g.gain.setTargetAtTime(0.05,time,0.02);g.gain.setTargetAtTime(0,time+0.15,0.05);o.connect(g);g.connect(masterGain);o.start(time);o.stop(time+0.5);}function schedRhythm(){if(currentMusicState!==2)return;var BEAT=1.85,bt=audioCtx.currentTime+0.1;for(var bar=0;bar<8;bar++){kick(bt);accent(bt+BEAT);kick(bt+BEAT*2);ghost(bt+BEAT*2+0.6+Math.random()*0.3);kick(bt+BEAT*3);accent(bt+BEAT*3+0.7);bt+=BEAT*4;}ns._rt=setTimeout(function(){if(currentMusicState===2)schedRhythm();},BEAT*4*8*1000-100);}schedRhythm();var frag=[{m:G3,g:0.055,w:1.85},{m:F3,g:0.045,w:3.8},{m:Bb3,g:0.060,w:5.6},{m:A3,g:0.050,w:7.5},{m:G3,g:0.055,w:9.0}];function schedKMel(base){frag.forEach(function(n){ns.push(schedN(hz(n.m),'sawtooth',n.g,base+n.w,1.0,0.06,0.20));});}schedKMel(audioCtx.currentTime+0.3);var ml=setInterval(function(){if(currentMusicState!==2){clearInterval(ml);return;}schedKMel(audioCtx.currentTime+0.3);},13700);ns._int=ml;var phase=0;var hs=setInterval(function(){if(currentMusicState!==2){clearInterval(hs);return;}phase=(phase+1)%3;var tg=[[0.14,0.10,0.09,0.06],[0.12,0.12,0.07,0.08],[0.15,0.09,0.10,0.05]][phase];[2,3,4,5].forEach(function(ni,i){if(ns[ni]&&ns[ni].g)ns[ni].g.gain.setTargetAtTime(tg[i],audioCtx.currentTime,1.2);});},11100);return ns;}
+function applyDecisionMusic(){if(!audioCtx)return;stateNodes.forEach(function(n,i){if(n&&n.g&&i>=3)n.g.gain.setTargetAtTime((n.base||0.05)*0.25,audioCtx.currentTime,0.4);});var root=currentMusicState===2?hz(D3-12):hz(D3);var held={o:audioCtx.createOscillator(),g:audioCtx.createGain()};held.o.type='sine';held.o.frequency.value=root;held.g.gain.value=0;held.o.connect(held.g);held.g.connect(masterGain);held.o.start();held.g.gain.setTargetAtTime(0.12,audioCtx.currentTime,0.1);held.g.gain.setTargetAtTime(0,audioCtx.currentTime+3.8,0.3);held.o.stop(audioCtx.currentTime+5.5);var ten={o:audioCtx.createOscillator(),g:audioCtx.createGain()};ten.o.type='sine';ten.o.frequency.value=root*Math.pow(2,1/12);ten.g.gain.value=0;ten.o.connect(ten.g);ten.g.connect(masterGain);ten.o.start();ten.g.gain.setTargetAtTime(0.05,audioCtx.currentTime,0.2);ten.g.gain.setTargetAtTime(0,audioCtx.currentTime+2.8,0.4);ten.o.stop(audioCtx.currentTime+4.5);decisionNodes=[held,ten];}
+function clearDecisionMusic(){if(!audioCtx)return;decisionNodes.forEach(function(n){try{n.g.gain.setTargetAtTime(0,audioCtx.currentTime,0.3);n.o.stop(audioCtx.currentTime+1.5);}catch(e){}});decisionNodes=[];stateNodes.forEach(function(n,i){if(n&&n.g&&i>=3)n.g.gain.setTargetAtTime(n.base||0.05,audioCtx.currentTime,0.5);});}
+function activateStrangeMusic(){if(!audioCtx||strangeOsc)return;var root=currentMusicState===2?hz(D3-12):hz(D3);strangeOsc=audioCtx.createOscillator();strangeGainNode=audioCtx.createGain();strangeOsc.type='sine';strangeOsc.frequency.value=root*Math.pow(2,-1/12);strangeGainNode.gain.value=0;strangeOsc.connect(strangeGainNode);strangeGainNode.connect(masterGain);strangeOsc.start();strangeGainNode.gain.setTargetAtTime(0.035,audioCtx.currentTime,3.0);}
+function deactivateStrangeMusic(){if(!strangeOsc)return;try{strangeGainNode.gain.setTargetAtTime(0,audioCtx.currentTime,1.5);strangeOsc.stop(audioCtx.currentTime+5);}catch(e){}strangeOsc=null;strangeGainNode=null;}
+function checkStrangeThreshold(){var count=Object.values(S.strange).filter(function(v){return v===true;}).length;if(count>=2&&!strangeActive){strangeActive=true;activateStrangeMusic();}}
+function switchMusicState(state){if(!audioCtx)return;if(audioCtx.state==='suspended')audioCtx.resume();if(decisionNodes.length)clearDecisionMusic();if(state===3){applyDecisionMusic();currentMusicState=3;return;}fadeNodes(stateNodes,0.8);currentMusicState=state;if(state===0)stateNodes=buildTitle();else if(state===1)stateNodes=buildMeridian();else if(state===2)stateNodes=buildKingsport();else stateNodes=[];if(strangeActive){deactivateStrangeMusic();setTimeout(activateStrangeMusic,600);}}
+function toggleMute(){initAudio();mutedAudio=!mutedAudio;var btn=document.getElementById('mute-btn');if(masterGain)masterGain.gain.setTargetAtTime(mutedAudio?0:0.65,audioCtx.currentTime,0.3);btn.innerHTML=mutedAudio?'&#128263;':'&#128266;';btn.classList.toggle('muted',mutedAudio);}
+var SC=3;
+function px(ctx,x,y,c){ctx.fillStyle=c;ctx.fillRect(x*SC,y*SC,SC,SC);}
+function fr(ctx,x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x*SC,y*SC,w*SC,h*SC);}
+function initC64(id,bg){var c=document.getElementById(id);if(!c)return null;c.width=64*SC;c.height=64*SC;var ctx=c.getContext('2d');fr(ctx,0,0,64,64,bg||'#0D1F1F');return ctx;}
+function drawMeridianLogo(){var c=document.getElementById('meridian-logo-canvas');if(!c)return;c.width=32*SC;c.height=32*SC;var ctx=c.getContext('2d');fr(ctx,0,0,32,32,'#0D1F1F');var cx=16,cy=16,r,a,rx,ry;for(a=0;a<360;a+=6){r=14;rx=Math.round(cx+r*Math.cos(a*Math.PI/180));ry=Math.round(cy+r*Math.sin(a*Math.PI/180));px(ctx,rx,ry,'#B8A46A');}for(a=0;a<360;a+=9){r=11;rx=Math.round(cx+r*Math.cos(a*Math.PI/180));ry=Math.round(cy+r*Math.sin(a*Math.PI/180));px(ctx,rx,ry,'#1E3A3A');}for(r=2;r<=8;r+=2){for(a=0;a<360;a+=14){rx=Math.round(cx+r*Math.cos(a*Math.PI/180));ry=Math.round(cy+r*Math.sin(a*Math.PI/180));px(ctx,rx,ry,'#1A2E44');}}for(var i=cx-13;i<=cx+13;i++)px(ctx,i,cy,'#B8A46A');for(var j=cy-13;j<=cy+13;j++)px(ctx,cx,j,'#B8A46A');}
+function drawRex(id){var ctx=initC64(id,'#0D1F1F');if(!ctx)return;var p=function(x,y,c){px(ctx,x,y,c);};var SK='#A8845A',SL='#C8A882',SD='#6B4A2A',HS='#9A9A8E',HG='#6A6A5E';var SD2='#1A2A2A',SM='#2A3A3A',TG='#B8A46A',TD='#8A7040',WH='#F5F0E8',NA='#1A2E44';for(var y=38;y<64;y++)for(var x=14;x<50;x++)p(x,y,SD2);for(var y=42;y<64;y++)for(var x=18;x<46;x++)p(x,y,SM);for(var y=44;y<64;y++)for(var x=29;x<35;x++)p(x,y,TG);for(var y=48;y<56;y++)for(var x=30;x<34;x++)p(x,y,TD);for(var y=36;y<42;y++)for(var x=28;x<36;x++)p(x,y,SK);for(var y=38;y<44;y++){p(25,y,WH);p(26,y,WH);p(37,y,WH);p(38,y,WH);}for(var y=22;y<40;y++)for(var x=20;x<44;x++)p(x,y,SK);for(var y=18;y<24;y++)for(var x=22;x<42;x++)p(x,y,SK);for(var y=26;y<38;y++){for(var x=17;x<21;x++)p(x,y,SK);for(var x=43;x<47;x++)p(x,y,SK);}for(var y=14;y<24;y++)for(var x=20;x<44;x++)p(x,y,HS);for(var y=10;y<16;y++)for(var x=22;x<42;x++)p(x,y,HG);for(var y=8;y<12;y++)for(var x=24;x<40;x++)p(x,y,HG);for(var y=14;y<20;y++){p(20,y,'#0D1F1F');p(19,y,'#0D1F1F');p(43,y,'#0D1F1F');p(44,y,'#0D1F1F');}for(var x=23;x<28;x++)p(x,27,HG);for(var x=36;x<41;x++)p(x,27,HG);for(var dy=0;dy<2;dy++){p(24,30+dy,NA);p(25,30+dy,NA);p(38,30+dy,NA);p(39,30+dy,NA);}p(26,31,WH);p(40,31,WH);p(31,33,SD);p(32,33,SD);p(30,34,SD);p(33,34,SD);for(var x=28;x<36;x++)p(x,37,SD);}
+function drawMargaret(id){var ctx=initC64(id,'#1A2A22');if(!ctx)return;var p=function(x,y,c){px(ctx,x,y,c);};var SD='#6B4A2A',SM='#8A6040',HD='#1A0E06',EY='#2A1808',WH='#F5F0E8';var SU='#2A3A2A',SUD='#1E2E1E',LI='#8A4A3A',EA='#B8A46A',GR='#8A9B8E';for(var y=40;y<64;y++)for(var x=14;x<50;x++)p(x,y,SUD);for(var y=44;y<64;y++)for(var x=18;x<46;x++)p(x,y,SU);for(var y=38;y<44;y++)for(var x=26;x<38;x++)p(x,y,GR);for(var y=36;y<42;y++)for(var x=28;x<36;x++)p(x,y,SD);for(var y=20;y<40;y++)for(var x=20;x<44;x++)p(x,y,SD);for(var y=16;y<22;y++)for(var x=22;x<42;x++)p(x,y,SD);for(var y=22;y<38;y++){for(var x=17;x<21;x++)p(x,y,SD);for(var x=43;x<47;x++)p(x,y,SD);}for(var y=12;y<24;y++)for(var x=20;x<44;x++)p(x,y,HD);for(var y=8;y<14;y++)for(var x=22;x<42;x++)p(x,y,HD);for(var y=6;y<10;y++)for(var x=24;x<40;x++)p(x,y,HD);for(var y=24;y<32;y++){p(20,y,HD);p(19,y,HD);p(43,y,HD);p(44,y,HD);}for(var y=12;y<18;y++){p(20,y,'#0A0604');p(19,y,'#0A0604');p(43,y,'#0A0604');p(44,y,'#0A0604');}for(var x=23;x<28;x++)p(x,27,HD);for(var x=36;x<41;x++)p(x,27,HD);for(var dy=0;dy<2;dy++){p(24,30+dy,EY);p(25,30+dy,EY);p(38,30+dy,EY);p(39,30+dy,EY);}p(26,31,WH);p(40,31,WH);p(24,29,HD);p(25,29,HD);p(38,29,HD);p(39,29,HD);p(31,33,SM);p(32,33,SM);p(30,34,SM);p(33,34,SM);for(var x=28;x<36;x++)p(x,37,LI);p(28,38,LI);p(35,38,LI);p(17,30,EA);p(17,31,EA);p(47,30,EA);p(47,31,EA);}
+function drawMast(id){var ctx=initC64(id,'#1A2A22');if(!ctx)return;var p=function(x,y,c){px(ctx,x,y,c);};var SL='#C8A882',SM='#A8845A',SD='#7A6040',HA='#5A4020',EY='#2A1A0A',WH='#F5F0E8';var SU='#14142A',SUL='#1A1A2E',TI='#4A4A8A',SM2='#7A4A3A';for(var y=40;y<64;y++)for(var x=14;x<50;x++)p(x,y,SU);for(var y=44;y<64;y++)for(var x=18;x<46;x++)p(x,y,SUL);for(var y=44;y<64;y++)for(var x=29;x<35;x++)p(x,y,TI);for(var y=40;y<46;y++){p(25,y,WH);p(26,y,WH);p(37,y,WH);p(38,y,WH);}for(var y=36;y<42;y++)for(var x=28;x<36;x++)p(x,y,SM);for(var y=20;y<40;y++)for(var x=19;x<45;x++)p(x,y,SL);for(var y=16;y<22;y++)for(var x=22;x<42;x++)p(x,y,SL);for(var y=24;y<38;y++){for(var x=16;x<20;x++)p(x,y,SL);for(var x=44;x<48;x++)p(x,y,SL);}for(var y=12;y<22;y++)for(var x=20;x<44;x++)p(x,y,HA);for(var y=10;y<14;y++)for(var x=22;x<42;x++)p(x,y,HA);for(var y=12;y<18;y++){p(20,y,'#0A0A1A');p(19,y,'#0A0A1A');p(43,y,'#0A0A1A');p(44,y,'#0A0A1A');}for(var y=14;y<20;y++)p(32,y,'#8A6A40');for(var x=23;x<28;x++)p(x,27,HA);for(var x=36;x<41;x++)p(x,27,HA);for(var dy=0;dy<2;dy++){p(24,30+dy,EY);p(25,30+dy,EY);p(38,30+dy,EY);p(39,30+dy,EY);}p(26,31,WH);p(40,31,WH);p(31,33,SD);p(32,33,SD);p(30,34,SD);p(33,34,SD);for(var x=27;x<37;x++)p(x,37,SM2);for(var x=28;x<36;x++)p(x,38,SM2);for(var x=29;x<35;x++)p(x,37,SL);p(27,37,SD);p(36,37,SD);for(var y=34;y<38;y++){p(20,y,SL);p(43,y,SL);}}
+var S={
+  module:5,money:20000,moneyMax:20000,time:40,timeMax:40,
+  rel:{mast:0,margaret:0,board:0,rex:0},
+  strange:{vanthorpe:false,building7:false,rex:false,employees:false},
+  vt7count:0,margaretAlliance:0,
+  d51:null,d51rexDone:false,d52:{},
+  d51r:'',d51c:null,d52r:'',d52c:null,
+  d61r:'',d61c:null,d62r:'',d62c:null,d63r:'',d63c:null,d64r:'',d64c:null,
+  d71r:'',d71c:null,d72r:'',d72c:null,d73r:'',d73c:null,
+  d74r:'',d74c:null,d75r:'',d75c:null,d76r:'',d76c:null,
+  d81r:'',d81c:null,d82r:'',d82c:null,d83r:'',d83c:null,
+  d84r:'',d84c:null,d85r:'',d85c:null,
+  mods:{
+    governanceReview:false,facilityWalkthrough:false,staffInterviews:false,
+    rawFinancial:false,purchasedAnalysis:false,margaretDocsReviewed:false,
+    margaretBriefing:false,rexEscalated:false,pestle:false,selfPESTLE:false,
+    margaretRegister:false,brauerAssessment:false,brauerAlternatives:false,
+    brauerRawData:false,itarFlagged:false,itarRex:false,itarFullDisclosure:false,
+    itarUnaddressed:false,internalControlsDoc:false,internalAudit:false,
+    equipmentDocM6:false,masdepAddressed:false,masdepExtension:false,
+    masdepDeferred:false,masdepOwnLegal:false,
+    cyberAudit:false,cyberUpgrade:false,cyberInsurance:false,cyberDeferred:false,
+    hedging:false,diversification:false,financialDeferred:false,
+    kasselFlagged:false,kasselIntel:false,
+    reputationStatement:false,reputationCounsel:false,reputationMast:false,
+    insuranceAudit:false,programBuilt:false
+  },
+  m6carry:0,m7carry:0,m8carry:0,
+  rcpt5:false,rcpt6:false,rcpt7:false,rcpt8:false,
+  receipt:[]
+};
+var SEL={
+  s61:{},s62:{},s63:{A:false,B:false,C:false},s64:{A:false,B:false,C:false,D:false},
+  s71:{A:false,B:false,C:false,D:false},s72:{A:false,B:false,C:false,D:false},
+  s73:{A:false,B:false,D:false},s74:{A:false,B:false,C:false},
+  s75:{A:false,B:false,C:false,D:false},s76:{yes:false,no:false},
+  s81:{A:false,B:false,C:false},s82:{A:false,B:false,C:false},s83:{A:false,B:false,C:false},
+  s84:{},s85:{},s85m:{}
+};
+function markStrange(key){S.strange[key]=true;checkStrangeThreshold();}
+function markVT7(){S.vt7count++;checkStrangeThreshold();}
+function ca(){return document.getElementById('content-area');}
+function clearCA(){document.getElementById('content-area').innerHTML='';}
+function setModHdr(n,t){document.getElementById('module-title').textContent='Module '+n+' - '+t;}
+function updateBars(){var mp=Math.max(0,S.money/S.moneyMax*100),tp=Math.max(0,S.time/S.timeMax*100);var mf=document.getElementById('money-fill'),tf=document.getElementById('time-fill');if(mf){mf.style.width=mp+'%';mf.className='res-fill'+(mp<25?' warning':'');}if(tf){tf.style.width=tp+'%';tf.className='res-fill'+(tp<25?' warning':'');}document.getElementById('money-display').textContent='$'+S.money.toLocaleString();document.getElementById('time-display').textContent=S.time+' units';}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
+function txtn(str){return document.createTextNode(str);}
+function appendDlg(parent,name,ttl,org,cid,body){var kp=org==='kp';var box=el('div','dlg'+(kp?' kp':''));var hdr=el('div','dlg-hdr');hdr.appendChild(el('span','dlg-name',name));hdr.appendChild(el('span','dlg-ttl',ttl));box.appendChild(hdr);var row=el('div','dlg-row');var port=el('div','dlg-portrait');var cv=document.createElement('canvas');cv.id=cid;cv.width=64*SC;cv.height=64*SC;cv.style.cssText='width:'+(64*SC)+'px;height:'+(64*SC)+'px;image-rendering:pixelated;';port.appendChild(cv);row.appendChild(port);var bd=el('div','dlg-body','');bd.textContent=body;row.appendChild(bd);box.appendChild(row);var foot=el('div','dlg-foot');foot.appendChild(el('span',null,kp?'KINGSPORT INDUSTRIAL SERVICES':'MERIDIAN ADVISORY GROUP'));box.appendChild(foot);parent.appendChild(box);}
+function appendNarr(parent,text,kp){var d=el('div','narrator-text'+(kp?' kp':''),'');d.textContent=text;parent.appendChild(d);}
+function appendEmail(parent,from,subj,body){var box=el('div','email-block');box.appendChild(el('div','email-from','FROM: '+from));box.appendChild(el('div','email-subject','RE: '+subj));var bd=el('div','email-body','');bd.textContent=body;box.appendChild(bd);parent.appendChild(box);}
+function appendForceInfo(parent,strong,rest){var box=el('div','force-info');var s=el('strong',null,strong);box.appendChild(s);var r=el('span','','');r.textContent=' '+rest;box.appendChild(r);parent.appendChild(box);}
+function appendSecHead(parent,text,kp){parent.appendChild(el('div','sec-head'+(kp?' kp':''),text));}
+function appendDecLabel(parent,text,kp){parent.appendChild(el('div','dec-label'+(kp?' kp':''),text));}
+function appendDecPrompt(parent,text,kp){var d=el('div','dec-prompt'+(kp?' kp':''),'');d.textContent=text;parent.appendChild(d);}
+function appendDivider(parent){parent.appendChild(el('div','divider'));}
+function appendPrevRow(parent,grp){var row=el('div','preview-row');var m=el('div','preview-item','MONEY REMAINING: ');var ms=el('span',null,'$'+S.money.toLocaleString());ms.id='mp-'+grp;m.appendChild(ms);var t=el('div','preview-item','TIME REMAINING: ');var ts=el('span',null,S.time+' units');ts.id='tp-'+grp;t.appendChild(ts);row.appendChild(m);row.appendChild(t);parent.appendChild(row);}
+function updPrev(grp,money,time){var mp=document.getElementById('mp-'+grp);if(mp)mp.textContent='$'+money.toLocaleString();var tp=document.getElementById('tp-'+grp);if(tp)tp.textContent=time+' units';}
+function runPages(pages,onDone){var idx=0;function show(){clearCA();var c=ca();pages[idx](c);var isLast=idx===pages.length-1;var btn=el('button','next-btn',isLast?'PROCEED':'CONTINUE');btn.onclick=function(){initAudio();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();if(isLast)onDone();else{idx++;show();}};c.appendChild(btn);}show();}
+function appendPagedRecap(parent,pages,onDone){var page=0;var wrapper=el('div',null),pageDiv=el('div',null);wrapper.appendChild(pageDiv);var nav=el('div','page-nav');var prevBtn=el('button','page-nav-btn','PREVIOUS');var nextBtn=el('button','page-nav-btn primary','NEXT');var ind=el('div','page-indicator','');nav.appendChild(prevBtn);nav.appendChild(nextBtn);wrapper.appendChild(nav);wrapper.appendChild(ind);parent.appendChild(wrapper);function render(){pageDiv.innerHTML='';pages[page](pageDiv);prevBtn.disabled=page===0;prevBtn.style.visibility=page===0?'hidden':'visible';var isLast=page===pages.length-1;nextBtn.textContent=isLast?'CONTINUE':'NEXT';ind.textContent='PAGE '+(page+1)+' OF '+pages.length;nextBtn.onclick=function(){if(isLast&&onDone)onDone();else if(page<pages.length-1){page++;render();}};prevBtn.onclick=function(){if(page>0){page--;render();}};}render();}
+function appendRat(parent,id,label,placeholder,kp){var box=el('div','rat-block');box.appendChild(el('div','rat-label'+(kp?' kp':''),label));box.appendChild(el('div','rat-hint','Briefly note your reasoning. One or two sentences. This will be included in your Decision Receipt.'));var ta=document.createElement('textarea');ta.className='rat-input';ta.id='rat-'+id;ta.placeholder=placeholder;ta.addEventListener('input',function(){S[id+'r']=this.value.trim();updConfirm(id);});var crow=el('div','conf-row');crow.appendChild(el('span','conf-lbl','CONFIDENCE:'));['High','Medium','Low'].forEach(function(v){var btn=el('button','conf-btn',v.toUpperCase());btn.id='cf-'+id+'-'+v[0];btn.onclick=function(){setConf(id,v);};crow.appendChild(btn);});var vh=el('div','val-hint','');vh.id='vh-'+id;box.appendChild(ta);box.appendChild(crow);box.appendChild(vh);parent.appendChild(box);}
+function setConf(id,v){S[id+'c']=v;['High','Medium','Low'].forEach(function(k){var b=document.getElementById('cf-'+id+'-'+k[0]);if(b)b.classList.toggle('active',k===v);});updConfirm(id);}
+function updConfirm(id){var rok=!!(S[id+'r']&&S[id+'r'].trim().length>0);var cok=!!S[id+'c'];var btn=document.getElementById('confirm-'+id);var vh=document.getElementById('vh-'+id);if(btn)btn.disabled=!(rok&&cok);if(vh){if(!rok&&!cok)vh.textContent='Please enter your reasoning and select a confidence level before confirming.';else if(!rok)vh.textContent='Please enter your reasoning before confirming.';else if(!cok)vh.textContent='Please select a confidence level before confirming.';else vh.textContent='';}}
+function appendConfBtn(parent,id,label,onclick,kp){var btn=el('button','confirm-btn'+(kp?' kp':''),label);btn.id='confirm-'+id;btn.disabled=true;btn.onclick=onclick;parent.appendChild(btn);}
+function buildCard(opts){var card=el('div','card'+(opts.kp?' kp':'')+(opts.dis?' disabled':'')+(opts.sel?' selected':''));card.id='card-'+opts.grp+'-'+opts.opt;if(!opts.dis&&opts.onclick)card.onclick=opts.onclick;card.appendChild(el('div','card-opt','OPT '+opts.opt));card.appendChild(el('div','card-title',opts.title));var desc=el('div','card-desc','');desc.textContent=opts.desc;card.appendChild(desc);card.appendChild(el('div','card-cost',opts.cost));if(opts.tag){card.appendChild(el('div','card-tag',opts.tag));}var chk=el('div','card-check',opts.sel?'\u2713':'');chk.id='chk-'+opts.grp+'-'+opts.opt;card.appendChild(chk);if(opts.tip){var tip=el('div','tooltip','');tip.textContent=opts.tip;card.appendChild(tip);}return card;}
+function addInsuf(parent,id){var d=el('div','insuf','');d.id='insuf-'+id;parent.appendChild(d);}
+function showInsuf(id,msg){var d=document.getElementById('insuf-'+id);if(d){d.style.display='block';d.textContent=msg;}}
+function hideInsuf(id){var d=document.getElementById('insuf-'+id);if(d)d.style.display='none';}
+function recapRow(parent,label,val,cls){var r=el('div','recap-row');r.appendChild(el('span','rk',label));r.appendChild(el('span','rv'+(cls?' '+cls:''),val));parent.appendChild(r);}
+function recapCon(parent,text){var d=el('div','recap-con','');d.textContent=text;parent.appendChild(d);}
+function copyRcpt(id,cb){var box=document.getElementById(id);if(!box)return;var t=box.textContent;if(navigator.clipboard){navigator.clipboard.writeText(t).then(cb).catch(function(){fallbackCopy(t,cb);});}else fallbackCopy(t,cb);}
+function fallbackCopy(t,cb){var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;top:-999px;left:-999px;';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');if(cb)cb();}catch(e){}document.body.removeChild(ta);}
+function showReceiptPage(rcptId,rcptText,procLabel,procOnClick,rcptCopiedKey){clearCA();var c=ca();c.appendChild(el('div','sec-head-lg','Decision Receipt'));var rs=el('div','recap-sec');rs.appendChild(el('div',null,'Copy this receipt and submit it alongside your Canvas reflection.'));var box=el('div','receipt-box','');box.textContent=rcptText;box.id=rcptId;rs.appendChild(box);var cpBtn=el('button','copy-btn','COPY RECEIPT TO CLIPBOARD');var procBtn=el('button','next-btn dim',procLabel);procBtn.disabled=true;var rNote=el('div',null,'You must copy the receipt before proceeding.');rNote.style.cssText='font-size:11px;color:#9AADA8;margin-top:8px;';cpBtn.onclick=function(){copyRcpt(rcptId,function(){S[rcptCopiedKey]=true;cpBtn.textContent='COPIED';cpBtn.className='copy-btn copied';procBtn.disabled=false;procBtn.classList.remove('dim');procBtn.onclick=procOnClick;rNote.textContent='Receipt copied. You may proceed.';});};if(S[rcptCopiedKey]){procBtn.disabled=false;procBtn.classList.remove('dim');procBtn.onclick=procOnClick;cpBtn.textContent='COPY RECEIPT AGAIN';rNote.textContent='Receipt previously copied.';}rs.appendChild(cpBtn);rs.appendChild(rNote);c.appendChild(rs);c.appendChild(procBtn);}
+function renderBriefing(){
+  setModHdr(5,'First Impressions');S.time=35;S.timeMax=40;updateBars();
+  runPages([
+    function(c){appendSecHead(c,'Engagement Briefing - Week One');appendEmail(c,'R. CALLOWAY - MERIDIAN ADVISORY GROUP','Kingsport Engagement','You have been assigned to Kingsport Industrial Services in Kingsport, Massachusetts. Full implementation authority. The client requested someone without prior exposure to the account. Margaret Osei is their Chief Risk Officer. She is capable and underutilized. Trust her instincts. The engagement scope is comprehensive. That means everything is in scope. The drive up Route 6 is pleasant this time of year. You will recognize the facility when you see it. RC');},
+    function(c){appendNarr(c,'The drive up Route 6 takes forty minutes. The facility announces itself before you reach it. A low, wide industrial complex behind a chain-link perimeter, flags at half the poles. The facility is immaculate. The grounds are immaculate. The staff you pass in the lobby say exactly the right things. Margaret Osei meets you near the security desk. She glances at the camera above the entrance, then back at you.',true);switchMusicState(2);},
+    function(c){appendDlg(c,'MARGARET OSEI','CRO - KINGSPORT INDUSTRIAL SERVICES','kp','dlg-m1','I am glad you are here. There is a lot to talk about. Some of it I can put in writing.');setTimeout(function(){drawMargaret('dlg-m1');},50);},
+    function(c){appendNarr(c,'Margaret shows you to a conference room on the second floor. Gerald Mast is already there. He is prepared.',true);appendDlg(c,'GERALD MAST','CFO - KINGSPORT INDUSTRIAL SERVICES','kp','dlg-g1','Welcome to Kingsport. We are very glad Meridian could send someone. I have prepared a suggested scope document. It covers what I think are the areas of genuine relevance. No sense in disturbing things that are running smoothly.');setTimeout(function(){drawMast('dlg-g1');},50);},
+    function(c){appendForceInfo(c,'You have been on-site for approximately four hours.','You do not have enough information to make fully informed decisions this week. You will have to prioritize. Some of what you do not investigate this week will matter later. Some of it will not. You do not yet know which is which. This is normal. This is the job.');}
+  ],renderD51);
+}
+function renderD51(){
+  clearCA();var c=ca();
+  appendDecLabel(c,'Decision 5.1 - Response to Mast Scoping Attempt');
+  if(!S.d51rexDone){
+    appendDecPrompt(c,'Gerald Mast has handed you a two-page suggested scope document. It omits three risk categories you have already flagged. Before deciding how to respond, you may check in with Rex first, or proceed directly to your response.');
+    var rexBox=el('div',null);rexBox.style.cssText='border:1px solid #4A5A5A;padding:16px;margin-bottom:16px;background:#0A1A1A;';
+    var rt=el('div',null,'OPTIONAL: Check in with Rex first (Free / 2 time units)');rt.style.cssText='font-size:12px;color:#B8A46A;margin-bottom:8px;font-weight:bold;';
+    var rd=el('div',null,'Step out briefly and send Rex a note before responding to Mast. This uses 2 time units but may provide useful context. You can only do this once.');rd.style.cssText='font-size:12px;color:#9AADA8;margin-bottom:12px;line-height:1.65;';
+    var rexBtn=el('button','confirm-btn','CHECK IN WITH REX (2 TIME UNITS)');rexBtn.style.marginTop='0';rexBtn.disabled=false;
+    rexBtn.onclick=function(){initAudio();S.time-=2;S.rel.rex+=1;S.mods.rexEscalated=true;markStrange('rex');S.d51rexDone=true;updateBars();renderD51();};
+    rexBox.appendChild(rt);rexBox.appendChild(rd);rexBox.appendChild(rexBtn);c.appendChild(rexBox);
+    var skipBtn=el('button','next-btn','SKIP - PROCEED DIRECTLY TO RESPONSE');skipBtn.style.marginTop='8px';
+    skipBtn.onclick=function(){initAudio();S.d51rexDone=true;renderD51();};c.appendChild(skipBtn);
+  } else {
+    switchMusicState(1);
+    var showD51Cards=function(pg){
+      appendDecPrompt(pg,'How do you respond to Mast scope document? See Mast Scope Document in Canvas Week 5 Module.');
+      var grid=el('div','cards-grid');
+      [{opt:'A',title:'Accept the framing professionally',cost:'$0 / 0 units',desc:'Acknowledge the document and proceed. No commitment either way.'},
+       {opt:'B',title:'Restate full authority clearly',cost:'$0 / 0 units',desc:'Politely but explicitly note that Meridian mandate is comprehensive. The scope document is noted, not adopted.'}
+      ].forEach(function(o){grid.appendChild(buildCard({grp:'51',opt:o.opt,title:o.title,cost:o.cost,desc:o.desc,sel:S.d51===o.opt,onclick:function(){selectD51(o.opt);}}));});
+      pg.appendChild(grid);pg.appendChild(el('div','mutex-note',''));
+      appendDivider(pg);appendRat(pg,'d51','Before You Decide','What does this situation tell you about Kingsport risk profile?',false);
+      appendConfBtn(pg,'d51','CONFIRM SELECTION',confirmD51,false);
+      if(S.d51r){var ta=document.getElementById('rat-d51');if(ta)ta.value=S.d51r;}
+      if(S.d51c)setConf('d51',S.d51c);updConfirm('d51');
+    };
+    if(S.mods.rexEscalated){
+      runPages([
+        function(pg){appendDecLabel(pg,'Decision 5.1 - Response to Mast Scoping Attempt');appendEmail(pg,'R. CALLOWAY - MERIDIAN ADVISORY GROUP','Mast','Full mandate. Do not negotiate it. Mast is a capable man who has managed this account through three previous advisors. He knows exactly what he is doing. The scope is comprehensive. That is why you are there. RC');appendNarr(pg,'Three previous advisors. You did not ask how many there had been.',false);},
+        function(pg){appendDecLabel(pg,'Decision 5.1 - Response to Mast Scoping Attempt');showD51Cards(pg);}
+      ],function(){});
+    } else {
+      appendDecLabel(c,'Decision 5.1 - Response to Mast Scoping Attempt');showD51Cards(c);
+    }
+  }
+}
+function selectD51(opt){S.d51=(S.d51===opt)?null:opt;['A','B'].forEach(function(k){var card=document.getElementById('card-51-'+k),chk=document.getElementById('chk-51-'+k);if(card)card.classList.toggle('selected',S.d51===k);if(chk)chk.textContent=(S.d51===k)?'\u2713':'';});updConfirm('d51');}
+function confirmD51(){if(!S.d51)return;switchMusicState(3);if(S.d51==='A')S.rel.mast+=1;if(S.d51==='B')S.rel.mast-=1;updateBars();setTimeout(function(){switchMusicState(2);renderD52();},2000);}
+var D52=[
+  {id:'interviews',lbl:'A',title:'Risk Culture Assessment',costM:4000,costT:8,cost:'$4,000 / 8 units',desc:'Structured interviews across departments to assess risk awareness and reporting culture.'},
+  {id:'governance',lbl:'B',title:'Governance Document Review',costM:2000,costT:5,cost:'$2,000 / 5 units',desc:'Board minutes, risk appetite statement, governance policies, and oversight structures.'},
+  {id:'rawfinancial',lbl:'C',title:'Raw Financial Data Package',costM:0,costT:1,cost:'Free / 1 unit',desc:'Three years of financial statements. Self-analysis required.'},
+  {id:'purchasedanalysis',lbl:'D',title:'Purchased Financial Analysis',costM:3000,costT:2,cost:'$3,000 / 2 units',desc:'Meridian research team produces a plain-language financial risk summary.'},
+  {id:'walkthrough',lbl:'E',title:'Facility Walkthrough',costM:2500,costT:5,cost:'$2,500 / 5 units',desc:'Escorted tour of production floors, equipment, and operational infrastructure.'},
+  {id:'margaretdocs',lbl:'F',title:'Review Existing Risk Memos',costM:0,costT:3,cost:'Free / 3 units',desc:'Two formal internal risk memos submitted by Margaret. Neither received a written response.'}
+];
+function d52cost(){var m=0,t=0;D52.forEach(function(o){if(S.d52[o.id]===true){m+=o.costM;t+=o.costT;}});return{m:m,t:t};}
+function renderD52(){
+  D52.forEach(function(o){if(S.d52[o.id]===undefined)S.d52[o.id]=false;});
+  clearCA();var c=ca();
+  appendDecLabel(c,'Decision 5.2 - Weekly Budget Allocation',true);
+  appendNarr(c,'You have the remainder of the first week. You select your priorities.',true);
+  appendDecPrompt(c,'Select one or more investigation actions for this week.',true);
+  var pr=el('div','preview-row');var mi=el('div','preview-item','MONEY REMAINING: ');var ms=el('span',null,'$'+S.money.toLocaleString());ms.id='mp-52';mi.appendChild(ms);var ti=el('div','preview-item','TIME REMAINING: ');var ts=el('span',null,S.time+' units');ts.id='tp-52';ti.appendChild(ts);pr.appendChild(mi);pr.appendChild(ti);c.appendChild(pr);
+  var grid=el('div','cards-grid');grid.id='d52-grid';c.appendChild(grid);
+  addInsuf(c,'52');appendDivider(c);appendRat(c,'d52','Before You Decide','What are you prioritizing this week, and why?',true);
+  appendConfBtn(c,'d52','CONFIRM SELECTION',confirmD52,true);
+  if(S.d52r){var ta=document.getElementById('rat-d52');if(ta)ta.value=S.d52r;}if(S.d52c)setConf('d52',S.d52c);updConfirm('d52');d52Paint();
+}
+function d52Paint(){
+  var grid=document.getElementById('d52-grid');if(!grid)return;grid.innerHTML='';
+  var usedM=0,usedT=0;D52.forEach(function(o){if(S.d52[o.id]===true){usedM+=o.costM;usedT+=o.costT;}});
+  var mp=document.getElementById('mp-52');if(mp)mp.textContent='$'+(S.money-usedM).toLocaleString();var tp=document.getElementById('tp-52');if(tp)tp.textContent=(S.time-usedT)+' units';
+  D52.forEach(function(opt){
+    var sel=S.d52[opt.id]===true;var card=el('div','card kp'+(sel?' selected':''));
+    card.appendChild(el('div','card-opt','OPT '+opt.lbl));card.appendChild(el('div','card-title',opt.title));var desc=el('div','card-desc','');desc.textContent=opt.desc;card.appendChild(desc);card.appendChild(el('div','card-cost',opt.cost));var chk=el('div','card-check',sel?'\u2713':'');card.appendChild(chk);
+    card.addEventListener('click',makeD52H(opt.id,opt.costM,opt.costT));grid.appendChild(card);
+  });
+}
+function makeD52H(id,costM,costT){return function(){if(S.d52[id]===true){S.d52[id]=false;}else{var tm=0,tt=0;D52.forEach(function(o){if(S.d52[o.id]===true){tm+=o.costM;tt+=o.costT;}});if(tm+costM>S.money||tt+costT>S.time){showInsuf('52','Insufficient '+(tm+costM>S.money?'budget':'time')+'.');return;}hideInsuf('52');S.d52[id]=true;}d52Paint();};}
+function confirmD52(){
+  var c=d52cost();S.money-=c.m;S.time-=c.t;switchMusicState(3);
+  if(S.d52.interviews){S.mods.staffInterviews=true;markStrange('employees');}
+  if(S.d52.governance){S.mods.governanceReview=true;markStrange('vanthorpe');}
+  if(S.d52.rawfinancial)S.mods.rawFinancial=true;if(S.d52.purchasedanalysis)S.mods.purchasedAnalysis=true;
+  if(S.d52.walkthrough){S.mods.facilityWalkthrough=true;markStrange('building7');}
+  if(S.d52.margaretdocs){S.mods.margaretDocsReviewed=true;S.rel.margaret+=1;}
+  S.receipt.push({m:5,d:'5.1',sel:'Option '+S.d51+(S.mods.rexEscalated?' (Rex)':''),r:S.d51r||'(not recorded)',c:S.d51c||'(not recorded)'});
+  S.receipt.push({m:5,d:'5.2',sel:Object.keys(S.d52).filter(function(k){return S.d52[k];}).join(', ')||'none',r:S.d52r||'(not recorded)',c:S.d52c||'(not recorded)'});
+  updateBars();trySave();
+  playAnimOverlay('equip1',function(){setTimeout(function(){switchMusicState(1);renderM5Recap();},2000);});
+}
+function renderM5Recap(){
+  var spent=20000-S.money,used=40-S.time,carry=Math.min(S.money,10000);S.m6carry=carry;
+  var rexNote=S.mods.margaretDocsReviewed||S.mods.margaretBriefing?'Solid start. You spoke to Margaret. Good. She does not trust easily. Watch for it. RC':'Solid start. You made decisions with incomplete information. That is the engagement. Watch what surfaces next week. RC';
+  var rcpt='MERIDIAN ADVISORY GROUP - DECISION RECEIPT\nMODULE 5 - FIRST IMPRESSIONS\n'+'-'.repeat(40)+'\nDECISION 5.1\nSelection: Option '+S.d51+(S.mods.rexEscalated?' (Rex)':'')+'\nRationale: '+(S.d51r||'not recorded')+'\nConfidence: '+(S.d51c||'not recorded')+'\n\nDECISION 5.2\nSelection: '+Object.keys(S.d52).filter(function(k){return S.d52[k];}).join(', ')+'\nRationale: '+(S.d52r||'not recorded')+'\nConfidence: '+(S.d52c||'not recorded')+'\n'+'-'.repeat(40)+'\nBudget spent: $'+spent.toLocaleString()+'\nTime used: '+used+'/40\nCarry to Module 6: $'+carry.toLocaleString()+'\n'+'-'.repeat(40)+'\nSubmit with Canvas reflection for Module 5.';
+  var cons=[S.d51==='A'&&'Mast received your response positively. The engagement scope has been subtly framed toward his preferred parameters.',S.d51==='B'&&'Mast acknowledged your authority. The relationship starts at slight friction.',S.mods.rexEscalated&&'Rex confirmed full mandate. His reply referenced three previous advisors on this account.',S.mods.staffInterviews&&'Staff interviews completed. Risk culture assessment indicates formal processes are present but reporting culture is thinner than the documentation suggests. Three employees produced no independent employment record prior to their Kingsport hire dates.',S.mods.governanceReview&&'Governance documents reviewed. A key person life insurance policy of $12 million is noted in the archive, assigned to H. Vanthorpe, Founding Director, Advisory. The policy was renewed in 2021. Personnel records for H. Vanthorpe date to 1923. No photograph is on file.',S.mods.facilityWalkthrough&&'Facility walkthrough completed. Equipment on Line 3 shows wear consistent with deferred maintenance. The facility manager mentioned Building 7 while reviewing the floor plan, then moved to the next item without making eye contact. Building 7 does not appear on the county floor plan or the most recent fire safety inspection record.',S.mods.margaretDocsReviewed&&'Margaret internal memos reviewed. Both are substantive and professionally formatted. Neither has a response on file. An unfinished entry at the bottom of her draft risk register reads: Legacy compliance matter, Building 7 classification. The entry is dated eighteen months ago. Nothing follows.',S.mods.purchasedAnalysis&&'Meridian research team financial summary: Revenue is concentrated in aerospace and defense contracts. Two contract renewals represent 23% of annual revenue. Commodity exposure to titanium alloys is significant and unhedged.',S.mods.rawFinancial&&'Raw financial data package received. Three years of statements.'].filter(Boolean);
+  var missed=[];if(!S.mods.governanceReview)missed.push('Governance Document Review: Board structure and risk appetite statement not reviewed.');if(!S.mods.facilityWalkthrough)missed.push('Facility Walkthrough: Equipment condition and operational infrastructure not assessed.');if(!S.mods.staffInterviews)missed.push('Risk Culture Assessment: No direct staff data on risk awareness or reporting culture.');if(!S.mods.rawFinancial&&!S.mods.purchasedAnalysis)missed.push('Financial Data: No financial baseline established.');if(!S.mods.margaretDocsReviewed)missed.push('Margaret Internal Memos: Two formal risk submissions not reviewed.');
+  clearCA();var c=ca();c.appendChild(el('div','sec-head-lg','Module 5 Recap - End of Week One'));appendNarr(c,'The first week closes. Your preliminary findings are a set of open questions, a partial picture, and the beginning of an understanding of how this place operates.',true);
+  appendPagedRecap(c,[
+    function(d){var r1=el('div','recap-sec');r1.appendChild(el('h3',null,'Decisions This Week'));[['5.1','Option '+S.d51+(S.mods.rexEscalated?' + Rex':''),''],['5.2',Object.keys(S.d52).filter(function(k){return S.d52[k];}).join(', ')||'None',''],['Budget Spent','$'+spent.toLocaleString(),spent>15000?'bad':spent>8000?'warn':'good'],['Time Used',used+'/40',''],['Carry to Module 6','$'+carry.toLocaleString(),'warn']].forEach(function(row){recapRow(r1,row[0],row[1],row[2]);});d.appendChild(r1);var r2=el('div','recap-sec');r2.appendChild(el('h3','section-title','Immediate Consequences'));if(!cons.length)recapCon(r2,'No investigation was conducted beyond the CFO meeting.');cons.forEach(function(t){recapCon(r2,t);});d.appendChild(r2);},
+    function(d){if(missed.length){var r3=el('div','recap-sec');r3.appendChild(el('h3',null,'What You Did Not Pursue'));missed.forEach(function(t){recapCon(r3,t);});d.appendChild(r3);}var r4=el('div','recap-sec');r4.appendChild(el('h3',null,'Note from Rex Calloway'));appendEmail(r4,'R. CALLOWAY - MERIDIAN ADVISORY GROUP','Week One',rexNote);d.appendChild(r4);},
+    function(d){var r5=el('div','recap-sec');r5.appendChild(el('h3',null,'Coming Next Week'));recapCon(r5,'Meridian wants a preliminary risk identification report by end of week. Kingsport sole critical alloy supplier has confirmed a change in beneficial ownership. Margaret has left you a voicemail. She sounds careful.');d.appendChild(r5);}
+  ],function(){showReceiptPage('rcpt-m5',rcpt,'PROCEED TO MODULE 6',startM6,'rcpt5');});
+}
+function startM6(){S.module=6;S.moneyMax=20000+S.m6carry;S.money=S.moneyMax;S.timeMax=40;S.time=40;SEL.s61={};SEL.s62={};SEL.s63={A:false,B:false,C:false};SEL.s64={A:false,B:false,C:false,D:false};setModHdr(6,'The Map Is Not the Territory');updateBars();renderM6Briefing();}
+function renderM6Briefing(){
+  runPages([
+    function(c){appendSecHead(c,'Module 6 - Week Two Briefing');appendEmail(c,'R. CALLOWAY - MERIDIAN ADVISORY GROUP','Kingsport Week Two','Meridian wants a preliminary risk identification report by end of week. Use whatever framework you think is appropriate. Brauer-Hecht ownership change confirmed in the public register this morning. Margaret flagged it. I noticed you received her voicemail. RC');switchMusicState(1);},
+    function(c){appendNarr(c,'Tuesday morning. The voicemail from Margaret was brief. She said: The Brauer-Hecht announcement is in the news. I want to make sure you have seen it. There is some context I can share if you have time. She did not say what context. You have returned her call.',true);switchMusicState(2);},
+    function(c){appendDlg(c,'MARGARET OSEI','CRO - KINGSPORT INDUSTRIAL SERVICES','kp','dlg-m2a','Brauer-Hecht is our sole supplier for the titanium alloy we use in the VT-7 product line. The ownership change went to a Luxembourg holding structure. I looked it up this morning. We have no alternative supplier qualified. Gerald will tell you we have been working with Brauer-Hecht for twenty-two years. He is right. That is part of what concerns me.');setTimeout(function(){drawMargaret('dlg-m2a');},50);},
+    function(c){appendForceInfo(c,'A fixed event has occurred this week:','Equipment on production Line 3 has malfunctioned again. The facility manager submitted an incident report with the word resolved. This is the second such incident.');},
+    function(c){appendDlg(c,'GERALD MAST','CFO - KINGSPORT INDUSTRIAL SERVICES','kp','dlg-g2a','The Line 3 situation is being handled. The facility team is excellent. I do not think this rises to the level of a formal risk finding. I would hate to see it distort the overall picture.');setTimeout(function(){drawMast('dlg-g2a');},50);appendNarr(c,'The incident report does not include a root cause. It never has.',true);}
+  ],renderD61);
+}
+function d61cost(opt){if(opt==='A')return{m:0,t:4};if(opt==='B')return S.margaretAlliance>=1?{m:0,t:3}:{m:2500,t:4};if(opt==='C')return{m:4000,t:2};if(opt==='D')return(S.mods.governanceReview||S.mods.staffInterviews)?{m:0,t:8}:{m:0,t:10};return{m:0,t:0};}
+function d6tot(grp,cf){var m=0,t=0;Object.keys(SEL['s'+grp]).forEach(function(k){if(SEL['s'+grp][k]){var c=cf(k);m+=c.m;t+=c.t;}});return{m:m,t:t};}
+function togM6(grp,opt,cf){var now=!SEL['s'+grp][opt];if(now){var tm=0,tt=0;Object.keys(SEL['s'+grp]).forEach(function(k){if(SEL['s'+grp][k]){var c=cf(k);tm+=c.m;tt+=c.t;}});var oc=cf(opt);if(tm+oc.m>S.money||tt+oc.t>S.time){showInsuf(grp,'Insufficient '+(tm+oc.m>S.money?'budget':'time')+'.');return;}}SEL['s'+grp][opt]=now;var card=document.getElementById('card-'+grp+'-'+opt),chk=document.getElementById('chk-'+grp+'-'+opt);if(card)card.classList.toggle('selected',now);if(chk)chk.textContent=now?'\u2713':'';var tot=d6tot(grp,cf);updPrev(grp,S.money-tot.m,S.time-tot.t);hideInsuf(grp);}
+function renderD61(){
+  clearCA();var c=ca();appendDecLabel(c,'Decision 6.1 - Risk Identification Approach',true);appendDecPrompt(c,'Meridian has asked for a preliminary risk identification report. How do you build it? All four options are combinable.',true);appendPrevRow(c,'61');
+  var bCost=S.margaretAlliance>=1?'Free / 3 units':'$2,500 / 4 units',dCost=(S.mods.governanceReview||S.mods.staffInterviews)?'Free / 8 units':'Free / 10 units';
+  var opts=[{opt:'A',title:'Briefing Materials and M5 Findings Only',cost:'Free / 4 units',desc:'Synthesize what you already have.'},{opt:'B',title:'Margaret Risk Register',cost:bCost,desc:'Margaret draft register, including the incomplete final entry.'},{opt:'C',title:'Commission PESTLE from Meridian Research Team',cost:'$4,000 / 2 units',desc:'Comprehensive external environmental scan. Brauer-Hecht and geopolitical exposure formally documented.'},{opt:'D',title:'Self-Conducted PESTLE and SWOT',cost:dCost,desc:'Quality depends on Module 5 investments.'}];
+  var grid=el('div','cards-grid');opts.forEach(function(o){grid.appendChild(buildCard({grp:'61',opt:o.opt,title:o.title,cost:o.cost,desc:o.desc,kp:true,sel:!!SEL.s61[o.opt],onclick:function(){togM6('61',o.opt,d61cost);}}));});c.appendChild(grid);
+  addInsuf(c,'61');appendDivider(c);appendRat(c,'d61','Before You Decide','How are you approaching the risk identification task this week?',true);appendConfBtn(c,'d61','CONFIRM SELECTION',confirmD61,true);
+  if(S.d61r){var ta=document.getElementById('rat-d61');if(ta)ta.value=S.d61r;}if(S.d61c)setConf('d61',S.d61c);updPrev('61',S.money,S.time);updConfirm('d61');
+}
+function confirmD61(){switchMusicState(3);var tot=d6tot('61',d61cost);S.money-=tot.m;S.time-=tot.t;if(SEL.s61.B){S.mods.margaretRegister=true;markStrange('building7');S.rel.margaret+=1;}if(SEL.s61.C)S.mods.pestle=true;if(SEL.s61.D)S.mods.selfPESTLE=true;updateBars();setTimeout(function(){switchMusicState(2);renderD62();},2000);}
+function d62cost(opt){if(opt==='A')return{m:0,t:2};if(opt==='B')return{m:S.mods.pestle?3500:5000,t:3};if(opt==='C')return{m:0,t:3};if(opt==='D')return{m:0,t:2};return{m:0,t:0};}
+function renderD62(){
+  clearCA();var c=ca();appendDecLabel(c,'Decision 6.2 - Brauer-Hecht Development',true);appendNarr(c,'Brauer-Hecht Precision Alloys GmbH. Twenty-two years as Kingsport sole qualified titanium supplier. Ownership transferred six weeks ago to a Luxembourg holding structure. The titanium spot price rose 11% overnight.',true);appendDecPrompt(c,'All options are combinable.',true);appendPrevRow(c,'62');
+  var bCost=(S.mods.pestle?'$3,500':'$5,000')+' / 3 units';
+  var opts=[{opt:'A',title:'Flag for Next Week',cost:'Free / 2 units',desc:'Note the ownership change as a risk item requiring follow-up.'},{opt:'B',title:'Commission Supplier Risk Assessment',cost:bCost,desc:'Ownership intelligence and Luxembourg structure analysis.'},{opt:'C',title:'Recommend Alternative Supplier Qualification',cost:'Free / 3 units',desc:'Identify alternative suppliers to reduce concentration risk.'},{opt:'D',title:'Pull Raw Commodity Data',cost:'Free / 2 units',desc:'Gather titanium price trend data for Module 7 hedging decisions.'}];
+  var grid=el('div','cards-grid');opts.forEach(function(o){grid.appendChild(buildCard({grp:'62',opt:o.opt,title:o.title,cost:o.cost,desc:o.desc,kp:true,sel:!!SEL.s62[o.opt],onclick:function(){togM6('62',o.opt,d62cost);}}));});c.appendChild(grid);
+  addInsuf(c,'62');appendDivider(c);appendRat(c,'d62','Before You Decide','How are you responding to the Brauer-Hecht development this week?',true);appendConfBtn(c,'d62','CONFIRM SELECTION',confirmD62,true);
+  if(S.d62r){var ta=document.getElementById('rat-d62');if(ta)ta.value=S.d62r;}if(S.d62c)setConf('d62',S.d62c);updPrev('62',S.money,S.time);updConfirm('d62');
+}
+function confirmD62(){switchMusicState(3);var tot=d6tot('62',d62cost);S.money-=tot.m;S.time-=tot.t;if(SEL.s62.B){S.mods.brauerAssessment=true;markVT7();}if(SEL.s62.C)S.mods.brauerAlternatives=true;if(SEL.s62.D)S.mods.brauerRawData=true;updateBars();setTimeout(function(){switchMusicState(2);renderD63();},2000);}
+function renderD63(){
+  var gated=S.mods.governanceReview||S.margaretAlliance>=1;var pages=[];
+  if(gated){pages.push(function(c){appendDecLabel(c,'Decision 6.3 - ITAR Compliance',true);appendNarr(c,'Available because you reviewed Kingsport governance documents or have Margaret direct input.',true);appendDlg(c,'MARGARET OSEI','CRO - KINGSPORT INDUSTRIAL SERVICES','kp','dlg-m63','There is a contract in the defense portfolio where the ITAR classification paperwork has not been formally reviewed since the original filing. I raised it eighteen months ago. It was characterized as a legacy administrative matter. I want to make sure it is on your list.');setTimeout(function(){drawMargaret('dlg-m63');},50);});}
+  pages.push(function(c){
+    if(!gated){appendDecLabel(c,'Decision 6.3 - ITAR Compliance',true);appendNarr(c,'A detail in Kingsport contract documentation does not rise to the threshold of formal identification without the governance document review or Margaret direct input. It may surface later.',true);return;}
+    appendDecPrompt(c,'Options A and B are combinable. C is mutually exclusive with both.',true);
+    var grid=el('div','cards-grid');[{opt:'A',title:'Flag Formally - Recommend Legal Counsel',cost:'Free / 3 units',desc:'Create a paper trail. Recommend export control legal counsel.'},{opt:'B',title:'Consult Rex Quietly',cost:'Free / 1 unit',desc:'Send Rex a discreet note on the ITAR detail before formal escalation.'},{opt:'C',title:'Treat as Outside Mandate',cost:'Free / 0 units',desc:'Note the detail but do not act on it this week.'}].forEach(function(o){grid.appendChild(buildCard({grp:'63',opt:o.opt,title:o.title,cost:o.cost,desc:o.desc,kp:true,sel:!!SEL.s63[o.opt],onclick:function(){togD63(o.opt);}}));});
+    c.appendChild(grid);var mn=el('div','mutex-note','');mn.id='mutex-63';c.appendChild(mn);appendDivider(c);appendRat(c,'d63','Before You Decide','How are you approaching this compliance detail?',true);appendConfBtn(c,'d63','CONFIRM SELECTION',confirmD63,true);updConfirm('d63');
+  });
+  runPages(pages,gated?confirmD63_then_D64:function(){renderD64();});
+}
+function confirmD63_then_D64(){confirmD63_inner();renderD64();}
+function togD63(opt){if(opt==='C'){SEL.s63.A=false;SEL.s63.B=false;SEL.s63.C=!SEL.s63.C;var mn=document.getElementById('mutex-63');if(mn)mn.textContent=SEL.s63.C?'Option C is mutually exclusive with A and B.':'';}else{SEL.s63.C=false;SEL.s63[opt]=!SEL.s63[opt];var anyAB=SEL.s63.A||SEL.s63.B;var mn=document.getElementById('mutex-63');var cC=document.getElementById('card-63-C');if(anyAB){if(mn)mn.textContent='Option C is no longer available.';if(cC){cC.classList.add('disabled');cC.classList.remove('selected');cC.onclick=null;}var chkC=document.getElementById('chk-63-C');if(chkC)chkC.textContent='';}else{if(mn)mn.textContent='';if(cC){cC.classList.remove('disabled');cC.onclick=function(){togD63('C');};}}}'A','B','C'].forEach(function(k){var card=document.getElementById('card-63-'+k),chk=document.getElementById('chk-63-'+k);if(card&&!card.classList.contains('disabled'))card.classList.toggle('selected',!!SEL.s63[k]);if(chk)chk.textContent=SEL.s63[k]?'\u2713':'';});}
+function confirmD63_inner(){var t=0;if(SEL.s63.A){S.mods.itarFlagged=true;S.rel.mast-=1;t+=3;}if(SEL.s63.B){S.mods.itarRex=true;S.rel.rex+=1;markStrange('rex');t+=1;}if(SEL.s63.C)S.mods.itarUnaddressed=true;S.time-=t;S.receipt.push({m:6,d:'6.3',sel:Object.keys(SEL.s63).filter(function(k){return SEL.s63[k];}).join('+')||'none',r:S.d63r||'(not recorded)',c:S.d63c||'(not recorded)'});}
+function confirmD63(){confirmD63_inner();updateBars();renderD64();}
+function renderD64(){
+  runPages([
+    function(c){appendDecLabel(c,'Decision 6.4 - Internal Controls Flag',true);appendDlg(c,'MARGARET OSEI','CRO - KINGSPORT INDUSTRIAL SERVICES','kp','dlg-m64','There is a procurement I want to make sure you are aware of. $340,000. Last quarter. A vendor outside our standard vetting process. Gerald characterized it as a legacy supplier relationship. I do not have documentation to show otherwise. I just think it should be on your list.');setTimeout(function(){drawMargaret('dlg-m64');},50);appendNarr(c,'The vendor does not appear in Kingsport approved supplier register. The approving signature is Gerald Mast.',true);},
+    function(c){
+      appendDecPrompt(c,'Options A and B are combinable. D is mutually exclusive with A and B.',true);
+      var grid=el('div','cards-grid');[{opt:'A',title:'Include in Risk Report',cost:'Free / 2 units',desc:'Document the procurement bypass formally.'},{opt:'B',title:'Recommend Formal Internal Audit',cost:'$3,000 / 5 units',desc:'Full assessment of procurement controls.'},{opt:'C',title:'Acknowledge to Margaret - Outside Scope',cost:'Free / 1 unit',desc:'Note it privately without formal documentation.'},{opt:'D',title:'Treat as Resolved per CFO',cost:'Free / 0 units',desc:'Accept Mast characterization.'}].forEach(function(o){grid.appendChild(buildCard({grp:'64',opt:o.opt,title:o.title,cost:o.cost,desc:o.desc,kp:true,sel:!!SEL.s64[o.opt],onclick:function(){togD64(o.opt);}}));});
+      c.appendChild(grid);var mn=el('div','mutex-note','');mn.id='mutex-64';c.appendChild(mn);appendDivider(c);appendRat(c,'d64','Before You Decide','How are you handling this internal controls detail?',true);appendConfBtn(c,'d64','CONFIRM SELECTION',confirmD64,true);updConfirm('d64');
+    }
+  ],function(){});
+}
+function togD64(opt){if(opt==='D'){SEL.s64.A=false;SEL.s64.B=false;SEL.s64.C=false;SEL.s64.D=true;['A','B'].forEach(function(k){var c=document.getElementById('card-64-'+k);if(c){c.classList.add('disabled');c.classList.remove('selected');c.onclick=null;}var chk=document.getElementById('chk-64-'+k);if(chk)chk.textContent='';});var mn=document.getElementById('mutex-64');if(mn)mn.textContent='Option D is mutually exclusive with formal documentation.';}else if(opt==='A'||opt==='B'){SEL.s64.D=false;SEL.s64[opt]=!SEL.s64[opt];var anyAB=SEL.s64.A||SEL.s64.B;var cD=document.getElementById('card-64-D');var mn=document.getElementById('mutex-64');if(anyAB){if(cD){cD.classList.add('disabled');cD.classList.remove('selected');cD.onclick=null;}var chkD=document.getElementById('chk-64-D');if(chkD)chkD.textContent='';if(mn)mn.textContent='Option D is no longer available.';}else{if(cD){cD.classList.remove('disabled');cD.onclick=function(){togD64('D');};}if(mn)mn.textContent='';}}else{SEL.s64[opt]=!SEL.s64[opt];}['A','B','C','D'].forEach(function(k){var card=document.getElementById('card-64-'+k),chk=document.getElementById('chk-64-'+k);if(card&&!card.classList.contains('disabled'))card.classList.toggle('selected',!!SEL.s64[k]);if(chk)chk.textContent=SEL.s64[k]?'\u2713':'';});}
+function confirmD64(){
+  switchMusicState(3);var m=0,t=0;if(SEL.s64.A){S.mods.internalControlsDoc=true;S.rel.mast-=1;S.rel.margaret+=1;t+=2;}if(SEL.s64.B){S.mods.internalAudit=true;S.rel.mast-=2;S.rel.margaret+=2;m+=3000;t+=5;markStrange('employees');}if(SEL.s64.D)S.rel.mast+=1;if(S.mods.facilityWalkthrough)S.mods.equipmentDocM6=true;S.money-=m;S.time-=t;
+  S.receipt.push({m:6,d:'6.1',sel:Object.keys(SEL.s61).filter(function(k){return SEL.s61[k];}).join('+')||'none',r:S.d61r||'(not recorded)',c:S.d61c||'(not recorded)'});
+  S.receipt.push({m:6,d:'6.2',sel:Object.keys(SEL.s62).filter(function(k){return SEL.s62[k];}).join('+')||'none',r:S.d62r||'(not recorded)',c:S.d62c||'(not recorded)'});
+  S.receipt.push({m:6,d:'6.4',sel:Object.keys(SEL.s64).filter(function(k){return SEL.s64[k];}).join('+')||'none',r:S.d64r||'(not recorded)',c:S.d64c||'(not recorded)'});
+  updateBars();trySave();
+  playAnimOverlay('equip2',function(){playAnimOverlay('controls',function(){setTimeout(function(){switchMusicState(1);renderM6Recap();},2000);});});
+}
+function renderM6Recap(){
+  var spend=(20000+S.m6carry)-S.money,used=40-S.time,carry=Math.min(S.money,10000);S.m7carry=carry;
+  var rexNote=S.mods.itarRex?'ITAR note received. I have seen this particular arrangement before. The original filing would have been around 1987 or so. The compliance framework has changed considerably since then. You are right to flag it. RC':'Risk identification report noted. You have a picture. Whether it is the full picture is a different question. The Brauer-Hecht development is real. What you do with it next week will matter. RC';
+  var hd=[['Operational',S.mods.facilityWalkthrough||S.mods.equipmentDocM6?'h-high':'h-blank'],['Financial',S.mods.purchasedAnalysis||S.mods.rawFinancial||S.mods.brauerRawData?'h-high':'h-blank'],['Supply Chain',S.mods.brauerAssessment||S.mods.brauerAlternatives?'h-high':SEL.s62.A?'h-med':'h-blank'],['Compliance',S.mods.itarFlagged||S.mods.itarRex?'h-high':S.mods.governanceReview?'h-med':'h-blank'],['Governance',S.mods.governanceReview?'h-high':'h-blank'],['Strategic',S.mods.pestle||S.mods.selfPESTLE?'h-med':'h-blank'],['Cybersecurity','h-blank'],['Reputation','h-blank'],['Internal Controls',S.mods.internalControlsDoc||S.mods.internalAudit?'h-high':'h-blank'],['Key Person',S.mods.governanceReview?'h-med':'h-blank'],['Workforce',S.mods.staffInterviews?'h-med':'h-blank'],['Geopolitical',S.mods.pestle?'h-med':'h-blank']];
+  var cons=[SEL.s61.B&&'Margaret risk register accessed. The unfinished final entry noted. Building 7 classification remains open.',SEL.s61.C&&'Meridian PESTLE commissioned. Brauer-Hecht and geopolitical exposure formally documented.',SEL.s62.B&&'Supplier risk assessment commissioned. Brauer-Hecht ownership traced to a Luxembourg holding structure. Cross-reference found with Kassel-Brandt Industrietechnik in the operating documents. The engagement team noted this without comment.',SEL.s62.C&&('Alternative supplier recommendation submitted. '+(S.rel.mast<-1?'Mast pushed back.':'Mast noted the recommendation without comment.')),S.mods.itarFlagged&&'ITAR compliance formally flagged. Recommendation for legal counsel submitted.',S.mods.itarRex&&'Rex responded to the ITAR note with an observation about the original filing timeline. His reference to the 1987 filing date was specific.',S.mods.internalControlsDoc&&'$340,000 procurement bypass formally documented.',S.mods.internalAudit&&'Internal audit commissioned. Three workstation credential anomalies identified. Accounts with no matching HR records. The report does not connect this to any other finding.','Equipment malfunction on Line 3 - second incident - '+(S.mods.facilityWalkthrough||S.mods.equipmentDocM6?'documented in the engagement record.':'not formally documented. Paper trail absent.')].filter(Boolean);
+  var rcpt='MERIDIAN ADVISORY GROUP - DECISION RECEIPT\nMODULE 6 - THE MAP IS NOT THE TERRITORY\n'+'-'.repeat(40)+'\nDECISION 6.1\nSelection: '+Object.keys(SEL.s61).filter(function(k){return SEL.s61[k];}).join('+')+'\nRationale: '+(S.d61r||'not recorded')+'\nDECISION 6.2\nSelection: '+Object.keys(SEL.s62).filter(function(k){return SEL.s62[k];}).join('+')+'\nRationale: '+(S.d62r||'not recorded')+'\nDECISION 6.3\nSelection: '+Object.keys(SEL.s63).filter(function(k){return SEL.s63[k];}).join('+')+'\nRationale: '+(S.d63r||'not recorded')+'\nDECISION 6.4\nSelection: '+Object.keys(SEL.s64).filter(function(k){return SEL.s64[k];}).join('+')+'\nRationale: '+(S.d64r||'not recorded')+'\n'+'-'.repeat(40)+'\nBudget spent: $'+spend.toLocaleString()+'\nTime used: '+used+'/40\nCarry to Module 7: $'+carry.toLocaleString()+'\n'+'-'.repeat(40)+'\nSubmit with Canvas reflection for Module 6.';
+  clearCA();var c=ca();appendSecHead(c,'Module 6 Recap - End of Week Two');appendNarr(c,'The risk identification report is drafted. It is as complete as the week allowed. Blank zones on the heat map are not safe zones.',true);
+  appendPagedRecap(c,[
+    function(d){var rs=el('div','recap-sec');rs.appendChild(el('h3',null,'Risk Heat Map'));var hint=el('div',null,'Populated by formal investigation only. Blank cells represent categories not yet assessed.');hint.style.cssText='font-size:11px;color:#9AADA8;margin-bottom:10px;';rs.appendChild(hint);var hm=el('div','heat-map');hd.forEach(function(h){hm.appendChild(el('div','heat-cell '+h[1],h[0]));});rs.appendChild(hm);d.appendChild(rs);},
+    function(d){var rs=el('div','recap-sec');rs.appendChild(el('h3',null,'Key Consequences This Week'));cons.forEach(function(t){recapCon(rs,t);});d.appendChild(rs);},
+    function(d){var rs=el('div','recap-sec');rs.appendChild(el('h3',null,'Note from Rex Calloway'));appendEmail(rs,'R. CALLOWAY - MERIDIAN ADVISORY GROUP','Week Two',rexNote);d.appendChild(rs);},
+    function(d){var rs=el('div','recap-sec');rs.appendChild(el('h3',null,'Coming Next Week'));recapCon(rs,'Next week you have to act on what you found. The titanium market moved again overnight. A letter has arrived from MassDEP. Margaret wants to know what you are going to do about the cybersecurity infrastructure. Three significant events have arrived in the same week.');d.appendChild(rs);}
+  ],function(){showReceiptPage('rcpt-m6',rcpt,'PROCEED TO MODULE 7',startM7,'rcpt6');});
+}
+function startM7(){S.module=7;S.moneyMax=20000+S.m7carry;S.money=S.moneyMax;S.timeMax=40;S.time=40;SEL.s71={A:false,B:false,C:false,D:false};SEL.s72={A:false,B:false,C:false,D:false};SEL.s73={A:false,B:false,D:false};SEL.s74={A:false,B:false,C:false};SEL.s75={A:false,B:false,C:false,D:false};SEL.s76={yes:false,no:false};setModHdr(7,'Decisions Under Uncertainty');updateBars();renderM7Briefing();}
+function d71cost(opt){if(opt==='A'){return{m:S.mods.governanceReview?3500:6000,t:8};}if(opt==='B')return{m:0,t:3};if(opt==='C')return{m:2000,t:3};if(opt==='D')return{m:0,t:0};return{m:0,t:0};}
+function d72cost(opt){if(opt==='A'){var base=7000;if(S.mods.facilityWalkthrough)base-=1000;if(S.mods.margaretDocsReviewed)base-=2000;if(base<2000)base=2000;return{m:base,t:12};}if(opt==='B')return{m:5000,t:8};if(opt==='C')return{m:4000,t:2};if(opt==='D')return{m:0,t:2};return{m:0,t:0};}
+function d73cost(opt){if(opt==='A')return{m:S.mods.rawFinancial||S.mods.purchasedAnalysis?3500:5000,t:4};if(opt==='B')return{m:S.mods.brauerAlternatives?3000:4000,t:6};if(opt==='D')return{m:0,t:0};return{m:0,t:0};}
+function d74cost(opt){if(opt==='A')return{m:0,t:3};if(opt==='B')return{m:S.mods.pestle?2000:3000,t:4};if(opt==='C')return{m:0,t:1};return{m:0,t:0};}
+function d75cost(opt){if(opt==='A')return{m:0,t:3};if(opt==='B')return{m:0,t:1};if(opt==='C')return{m:S.mods.masdepAddressed?1000:2500,t:4};if(opt==='D')return{m:0,t:1};return{m:0,t:0};}
+function d7tot(grp,cf){var m=0,t=0;Object.keys(SEL['s'+grp]).forEach(function(k){if(SEL['s'+grp][k]){var c=cf(k);m+=c.m;t+=c.t;}});return{m:m,t:t};}
+function togM7(grp,opt,cf,mutexFn){var now=!SEL['s'+grp][opt];if(now){var tm=0,tt=0;Object.keys(SEL['s'+grp]).forEach(function(k){if(SEL['s'+grp][k]){var c=cf(k);tm+=c.m;tt+=c.t;}});var oc=cf(opt);if(tm+oc.m>S.money){showInsuf(grp,'Insufficient budget.');return;}if(tt+oc.t>S.time){showInsuf(grp,'Insufficient time.');return;}}SEL['s'+grp][opt]=now;if(mutexFn)mutexFn(opt,now);var card=document.getElementById('card-'+grp+'-'+opt),chk=document.getElementById('chk-'+grp+'-'+opt);if(card)card.classList.toggle('selected',now);if(chk)chk.textContent=now?'\u2713':'';var tot=d7tot(grp,cf);updPrev(grp,S.money-tot.m,S.time-tot.t);hideInsuf(grp);}
+function renderM7Briefing(){
+  runPages([
+    function(c){appendSecHead(c,'Module 7 - Week Three Briefing');appendEmail(c,'R. CALLOWAY - MERIDIAN ADVISORY GROUP','Kingsport Week Three','Three significant events will arrive this week. As in previous weeks, you have 40 units of capacity and a finite budget. You cannot fully address all three. Assess likelihood, impact, and urgency and make choices that leave something on the table. This is not a failure of planning. This is risk management in practice. RC');switchMusicState(1);},
+    function(c){appendForceInfo(c,'Forced incomplete information moment:','Three significant events will arrive this week. As in previous weeks, you have 40 units of capacity and a finite budget. You cannot fully address all three. You will have to assess likelihood, impact, and urgency and make choices that leave something on the table. This is not a failure of planning. This is risk management in practice. What you address, and how thoroughly, is your call. What you defer will not wait indefinitely.');switchMusicState(2);},
+    function(c){appendDlg(c,'MARGARET OSEI','CRO - KINGSPORT INDUSTRIAL SERVICES','kp','dlg-m7a','The MassDEP letter arrived this morning. I expected it. There has been a TCE reading at the boundary monitoring station above the threshold for the third consecutive quarter. We have thirty days. I want to be transparent with you about what I think the options are.');setTimeout(function(){drawMargaret('dlg-m7a');},50);},
+    function(c){appendNarr(c,'The cybersecurity incident happened overnight. Someone attempted to access the production scheduling system from an external IP. The attempt failed. The infrastructure it failed against was last updated in 2009.',true);appendDlg(c,'GERALD MAST','CFO - KINGSPORT INDUSTRIAL SERVICES','kp','dlg-g7a','The IT team has reviewed the incident. The intrusion was not successful. I think the appropriate response is to note it and move on. We have always had excellent operational security at this facility.');setTimeout(function(){drawMast('dlg-g7a');},50);},
+    function(c){appendNarr(c,'Kassel-Brandt Industrietechnik AG has announced a $14 million investment in automated precision component manufacturing. Their press release mentions aerospace and defense applications. They are in the same sector as Kingsport. The announcement was made at 8am.',true);var leg=el('div','risk-response-legend');var legTitle=el('div','rrl-title','The Risk Response Framework');leg.appendChild(legTitle);var intro=el('div',null,'');intro.textContent='This week you choose how to respond to each risk. Every decision card is tagged with its response type. The recap will label your choices.';intro.style.cssText='font-size:12px;color:#9AADA8;margin-bottom:14px;line-height:1.7;';leg.appendChild(intro);[{cls:'avoid',label:'AVOID',def:'Eliminate the risk entirely -- change course so the risk cannot occur.'},{cls:'reduce',label:'REDUCE',def:'Lower the likelihood or impact -- make the risk smaller or less probable.'},{cls:'transfer',label:'TRANSFER',def:'Shift the risk to a third party -- insurance, contracts, external counsel.'},{cls:'accept',label:'ACCEPT',def:'Consciously absorb the risk -- a deliberate decision, not an oversight.'}].forEach(function(row){var r=el('div','rrl-row');r.appendChild(el('span','rrl-tag '+row.cls,row.label));var def=el('span','rrl-def','');def.textContent=row.def;r.appendChild(def);leg.appendChild(r);});c.appendChild(leg);}
+  ],renderD71);
+}
+function renderD71(){
+  clearCA();var c=ca();appendDecLabel(c,'Decision 7.1 - MassDEP Compliance Notice',true);appendNarr(c,'A formal compliance notice from the Massachusetts Department of Environmental Protection. TCE readings at the boundary monitoring station. Third consecutive quarter above threshold. Thirty-day response window.',true);appendDecPrompt(c,'Options A and C are combinable (strongest response). A and D are mutually exclusive. B and D are mutually exclusive.',true);appendPrevRow(c,'71');
+  var aCost=(S.mods.governanceReview?'$3,500':'$6,000')+' / 8 units',aDisc=S.mods.governanceReview?' (governance review discount applied)':'';
+  var opts=[{opt:'A',title:'Engage Environmental Legal Counsel Immediately',cost:aCost,desc:'Commission external environmental legal expertise. Strongest long-term compliance posture.'+aDisc,tag:'REDUCE'},{opt:'B',title:'Recommend Kingsport Own Legal Team',cost:'Free (Meridian) / 3 units',desc:'Refer to Kingsport internal counsel. Lower Meridian cost, but potential conflict risk if Margaret not consulted.',tag:'REDUCE'},{opt:'C',title:'File for 30-Day Extension',cost:'$2,000 / 3 units',desc:'Buy time while longer-term response is prepared. Extension expires in Module 8.',tag:'ACCEPT'},{opt:'D',title:'Treat as Outside Mandate',cost:'Free / 0 units',desc:'Note the letter but take no action this week.',tag:'ACCEPT'}];
+  var grid=el('div','cards-grid');opts.forEach(function(o){grid.appendChild(buildCard({grp:'71',opt:o.opt,title:o.title,cost:o.cost,desc:o.desc,kp:true,tag:o.tag,sel:!!SEL.s71[o.opt],onclick:function(){togM7('71',o.opt,d71cost,mutex71);}}));});c.appendChild(grid);var mn=el('div','mutex-note','');mn.id='mutex-71';c.appendChild(mn);
+  addInsuf(c,'71');appendDivider(c);appendRat(c,'d71','Before You Decide','How are you prioritizing the MassDEP notice, and what response type are you choosing?',true);appendConfBtn(c,'d71','CONFIRM SELECTION',confirmD71,true);
+  if(S.d71r){var ta=document.getElementById('rat-d71');if(ta)ta.value=S.d71r;}if(S.d71c)setConf('d71',S.d71c);updPrev('71',S.money,S.time);updConfirm('d71');
+}
+function mutex71(opt,selected){var mn=document.getElementById('mutex-71');function lockCard(k){var card=document.getElementById('card-71-'+k);if(card){card.classList.add('disabled');card.classList.remove('selected');card.onclick=null;}var chk=document.getElementById('chk-71-'+k);if(chk)chk.textContent='';SEL.s71[k]=false;}function unlockCard(k,h){var card=document.getElementById('card-71-'+k);if(card){card.classList.remove('disabled');card.onclick=h;}}if(opt==='D'&&selected){lockCard('A');lockCard('B');lockCard('C');if(mn)mn.textContent='Option D selected. Active responses are locked.';}else if(opt==='D'&&!selected){['A','B','C'].forEach(function(k){unlockCard(k,function(){togM7('71',k,d71cost,mutex71);});});if(mn)mn.textContent='';}else if(selected){var cD=document.getElementById('card-71-D');if(cD){cD.classList.add('disabled');cD.onclick=null;}if(mn)mn.textContent='Option D is no longer available when active responses are selected.';}else{if(!SEL.s71.A&&!SEL.s71.B&&!SEL.s71.C){var cD=document.getElementById('card-71-D');if(cD){cD.classList.remove('disabled');cD.onclick=function(){togM7('71','D',d71cost,mutex71);};}if(mn)mn.textContent='';}}}
+function confirmD71(){switchMusicState(3);var tot=d7tot('71',d71cost);S.money-=tot.m;S.time-=tot.t;if(SEL.s71.A)S.mods.masdepAddressed=true;if(SEL.s71.B)S.mods.masdepOwnLegal=true;if(SEL.s71.C)S.mods.masdepExtension=true;if(SEL.s71.D)S.mods.masdepDeferred=true;updateBars();setTimeout(function(){switchMusicState(2);renderD72();},2000);}
+function renderD72(){
+  clearCA();var c=ca();appendDecLabel(c,'Decision 7.2 - Cybersecurity Incident',true);appendNarr(c,'An external intrusion attempt against production scheduling infrastructure. Failed. The infrastructure it failed against is running on systems last updated in 2009. The attempt will be repeated.',true);
+  var auditCost=7000;if(S.mods.facilityWalkthrough)auditCost-=1000;if(S.mods.margaretDocsReviewed)auditCost-=2000;if(auditCost<2000)auditCost=2000;var aDisc=S.mods.facilityWalkthrough||S.mods.margaretDocsReviewed?' (discount applied)':'';
+  appendDecPrompt(c,'A, B, and C are combinable. D is mutually exclusive with all three.',true);appendPrevRow(c,'72');
+  var opts=[{opt:'A',title:'Commission Third-Party Security Audit',cost:'$'+auditCost.toLocaleString()+' / 12 units',desc:'Full assessment of infrastructure vulnerabilities. Generates credential anomaly finding.'+aDisc,tag:'REDUCE'},{opt:'B',title:'Recommend Infrastructure Upgrade',cost:'$5,000 / 8 units',desc:'Plan and begin modernization of production scheduling systems.',tag:'REDUCE'},{opt:'C',title:'Purchase Cyber Insurance (Interim)',cost:'$4,000 / 2 units',desc:'Interim coverage while longer-term remediation proceeds.',tag:'TRANSFER'},{opt:'D',title:'Document and Defer',cost:'Free / 2 units',desc:'Log the incident and defer action to next week.',tag:'ACCEPT'}];
+  var grid=el('div','cards-grid');opts.forEach(function(o){grid.appendChild(buildCard({grp:'72',opt:o.opt,title:o.title,cost:o.cost,desc:o.desc,kp:true,tag:o.tag,sel:!!SEL.s72[o.opt],onclick:function(){togM7('72',o.opt,d72cost,mutex72);}}));});c.appendChild(grid);var mn=el('div','mutex-note','');mn.id='mutex-72';c.appendChild(mn);
+  addInsuf(c,'72');appendDivider(c);appendRat(c,'d72','Before You Decide','How are you assessing the cybersecurity incident and what response type are you choosing?',true);appendConfBtn(c,'d72','CONFIRM SELECTION',confirmD72,true);
+  if(S.d72r){var ta=document.getElementById('rat-d72');if(ta)ta.value=S.d72r;}if(S.d72c)setConf('d72',S.d72c);updPrev('72',S.money,S.time);updConfirm('d72');
+}
+function mutex72(opt,selected){var mn=document.getElementById('mutex-72');function lockCard(k){var card=document.getElementById('card-72-'+k);if(card){card.classList.add('disabled');card.classList.remove('selected');card.onclick=null;}var chk=document.getElementById('chk-72-'+k);if(chk)chk.textContent='';SEL.s72[k]=false;}function unlockCard(k,h){var card=document.getElementById('card-72-'+k);if(card){card.classList.remove('disabled');card.onclick=h;}}if(opt==='D'&&selected){lockCard('A');lockCard('B');lockCard('C');if(mn)mn.textContent='Document and Defer selected. Active response options are locked.';}else if(opt==='D'&&!selected){['A','B','C'].forEach(function(k){unlockCard(k,function(){togM7('72',k,d72cost,mutex72);});});if(mn)mn.textContent='';}else if(selected){var cD=document.getElementById('card-72-D');if(cD){cD.classList.add('disabled');cD.onclick=null;}if(mn)mn.textContent='Option D is no longer available when active responses are selected.';}else{if(!SEL.s72.A&&!SEL.s72.B&&!SEL.s72.C){var cD=document.getElementById('card-72-D');if(cD){cD.classList.remove('disabled');cD.onclick=function(){togM7('72','D',d72cost,mutex72);};}if(mn)mn.textContent='';}}}
+function confirmD72(){switchMusicState(3);var tot=d7tot('72',d72cost);S.money-=tot.m;S.time-=tot.t;if(SEL.s72.A){S.mods.cyberAudit=true;markStrange('employees');}if(SEL.s72.B)S.mods.cyberUpgrade=true;if(SEL.s72.C)S.mods.cyberInsurance=true;if(SEL.s72.D)S.mods.cyberDeferred=true;updateBars();setTimeout(function(){switchMusicState(2);renderD73();},2000);}
+function renderD73(){
+  clearCA();var c=ca();appendDecLabel(c,'Decision 7.3 - Financial Risk',true);appendNarr(c,'The titanium spot price has moved again. Brauer-Hecht has not yet passed the increase through to contract pricing. That will not last. Revenue is concentrated in two defense contract renewals representing 23% of annual revenue.',true);appendDecPrompt(c,'A and B are combinable for strongest position. D is mutually exclusive with A and B.',true);appendPrevRow(c,'73');
+  var hedgCost=S.mods.rawFinancial||S.mods.purchasedAnalysis?3500:5000,divCost=S.mods.brauerAlternatives?3000:4000;
+  var opts=[{opt:'A',title:'Recommend Hedging Arrangement',cost:'$'+hedgCost.toLocaleString()+' / 4 units',desc:'Lock in pricing on titanium alloy exposure.',tag:'TRANSFER'},{opt:'B',title:'Recommend Supply Chain Diversification',cost:'$'+divCost.toLocaleString()+' / 6 units',desc:'Reduce single-supplier concentration.',tag:'REDUCE'},{opt:'D',title:'Do Nothing on Financial Risk',cost:'Free / 0 units',desc:'Accept current exposure.',tag:'ACCEPT'}];
+  var grid=el('div','cards-grid');opts.forEach(function(o){grid.appendChild(buildCard({grp:'73',opt:o.opt,title:o.title,cost:o.cost,desc:o.desc,kp:true,tag:o.tag,sel:!!SEL.s73[o.opt],onclick:function(){togM7('73',o.opt,d73cost,mutex73);}}));});c.appendChild(grid);var mn=el('div','mutex-note','');mn.id='mutex-73';c.appendChild(mn);
+  addInsuf(c,'73');appendDivider(c);appendRat(c,'d73','Before You Decide','How are you assessing the financial risk exposure this week?',true);appendConfBtn(c,'d73','CONFIRM SELECTION',confirmD73,true);
+  if(S.d73r){var ta=document.getElementById('rat-d73');if(ta)ta.value=S.d73r;}if(S.d73c)setConf('d73',S.d73c);updPrev('73',S.money,S.
