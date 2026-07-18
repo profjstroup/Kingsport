@@ -48,6 +48,28 @@
   }
   #dockHint kbd { background:#3a2a10; border:1px solid #7a5a2a; padding:1px 6px; border-radius:3px; }
 
+  #boardHint {
+    position:absolute; bottom:56px; left:50%; transform:translateX(-50%);
+    background:rgba(60,10,10,0.85); border:1px solid #a04a3a; padding:8px 16px; border-radius:4px;
+    font-size:14px; display:none;
+  }
+  #boardHint kbd { background:#3a2a10; border:1px solid #7a5a2a; padding:1px 6px; border-radius:3px; }
+
+  /* ---------- Dueling ---------- */
+  #duelOverlay {
+    position:absolute; inset:0; background:rgba(2,4,6,0.94); display:none; z-index:80;
+    flex-direction:column; align-items:center; justify-content:center;
+  }
+  #duelOverlay h2 { color:#ffd97a; margin-bottom:10px; letter-spacing:1px; }
+  #duelBars { display:flex; gap:40px; width:520px; justify-content:space-between; margin-bottom:6px; font-size:13px; }
+  #duelBars .side { width:45%; }
+  #duelBars .side.enemy { text-align:right; }
+  #duelCanvas { border:2px solid #7a5a2a; border-radius:4px; background:#1a2a33; }
+  #duelLog { width:520px; font-size:12px; color:#ddd0aa; margin-top:8px; min-height:64px; text-shadow:1px 1px 2px #000;}
+  #duelLog div { margin-bottom:2px; }
+  #duelHelp { font-size:13px; color:#cfc19a; margin-top:6px; }
+  #duelHelp kbd { background:#3a2a10; border:1px solid #7a5a2a; padding:1px 6px; border-radius:3px; }
+
   /* ---------- Modal ---------- */
   #modalOverlay {
     position:absolute; inset:0; background:rgba(2,8,10,0.82); display:none; align-items:center; justify-content:center; z-index:50;
@@ -118,6 +140,22 @@
   <div id="log"></div>
 
   <div id="dockHint">Press <kbd>F</kbd> to dock at <span id="dockPortName">Port</span></div>
+  <div id="boardHint">Press <kbd>B</kbd> to board and duel the captain of <span id="boardTargetName">the enemy ship</span></div>
+
+  <div id="duelOverlay">
+    <h2>Blade to Blade!</h2>
+    <div id="duelBars">
+      <div class="side">You
+        <div class="hp-bar-outer" style="width:100%; height:12px;"><div id="duelPlayerBar" class="crew-bar-inner" style="width:100%;"></div></div>
+      </div>
+      <div class="side enemy"><span id="duelEnemyName">Enemy Captain</span>
+        <div class="hp-bar-outer" style="width:100%; height:12px;"><div id="duelEnemyBar" class="hp-bar-inner" style="width:100%;"></div></div>
+      </div>
+    </div>
+    <canvas id="duelCanvas" width="520" height="260"></canvas>
+    <div id="duelLog"></div>
+    <p id="duelHelp"><kbd>Space</kbd> Attack &nbsp; hold <kbd>Shift</kbd> Guard &nbsp; <kbd>Esc</kbd> Retreat</p>
+  </div>
 
   <div id="modalOverlay">
     <div id="modal"></div>
@@ -129,7 +167,8 @@
       Take command of your ship upon the Spanish Main. Trade, plunder, and battle across a scattering
       of islands and colonial ports. Sail with <b>W/S</b> to trim sail speed, <b>A/D</b> to turn,
       fire cannons with <b>Q</b> (port) / <b>E</b> (starboard), and dock at any port by sailing close
-      and pressing <b>F</b>.
+      and pressing <b>F</b>. Grapple alongside a hostile ship and press <b>B</b> to board her and
+      duel the enemy captain blade to blade — win, and you capture the prize instead of sinking her.
     </p>
     <button class="pbtn" onclick="startGame()">Set Sail</button>
   </div>
@@ -321,7 +360,7 @@ class Ship {
         vx: Math.cos(a)*7.2, vy: Math.sin(a)*7.2, life: 70, owner:this, dmg: rand(4,9)
       });
     }
-    this.reload = 1.35;
+    this.reload = 65;
     return true;
   }
 }
@@ -348,6 +387,15 @@ let game = {
 };
 NATION_KEYS.forEach(n=> game.reputation[n]=0);
 
+let duel = {
+  active:false, enemy:null,
+  playerResolve:100, playerResolveMax:100,
+  enemyResolve:100, enemyResolveMax:100,
+  playerGuard:false, enemyGuard:false,
+  playerCooldown:0, enemyTimer:0,
+  flashP:0, flashE:0, log:[],
+};
+
 function logMsg(msg){
   game.log.unshift(msg);
   if (game.log.length>6) game.log.pop();
@@ -370,10 +418,20 @@ function startGame(){
 
 //////////////////////// INPUT ////////////////////////
 window.addEventListener('keydown', e=>{
-  game.keys[e.key.toLowerCase()] = true;
-  if (e.key.toLowerCase()==='f') tryDock();
-  if (e.key.toLowerCase()==='q') fireCannons('left');
-  if (e.key.toLowerCase()==='e') fireCannons('right');
+  const k = e.key.toLowerCase();
+  game.keys[k] = true;
+  if (k===' ') e.preventDefault();
+
+  if (duel.active){
+    if (k===' ') playerDuelAttack();
+    if (e.key === 'Escape') fleeDuel();
+    return;
+  }
+
+  if (k==='f') tryDock();
+  if (k==='q') fireCannons('left');
+  if (k==='e') fireCannons('right');
+  if (k==='b') tryBoard();
   if (e.key === 'Escape') closeModal();
 });
 window.addEventListener('keyup', e=>{ game.keys[e.key.toLowerCase()] = false; });
@@ -381,10 +439,7 @@ window.addEventListener('keyup', e=>{ game.keys[e.key.toLowerCase()] = false; })
 function fireCannons(side){
   if (!game.player || game.dockedPort) return;
   const p = game.player;
-  // find nearby enemy in range to give hit feedback message context (not required for firing)
-  if (p.fireBroadside(side, game.projectiles)) {
-    // small kick
-  }
+  p.fireBroadside(side, game.projectiles);
 }
 
 //////////////////////// AI ////////////////////////
@@ -521,8 +576,10 @@ let lastTime = performance.now();
 function loop(now){
   const dt = clamp((now-lastTime)/16.67, 0, 3);
   lastTime = now;
-  if (!game.paused) update(dt);
-  render();
+  if (!game.paused){
+    if (duel.active) updateDuel(dt); else update(dt);
+  }
+  if (duel.active) renderDuelScene(); else render();
   requestAnimationFrame(loop);
 }
 
@@ -597,11 +654,29 @@ function update(dt){
     game._nearPort = null;
   }
 
+  // boarding hint — any hostile ship close alongside can be boarded for a duel
+  let boardTarget = null, bd2 = Infinity;
+  for (const s of game.npcShips){
+    const hostileEff = s.hostile || (s.nation!=='pirate' && game.reputation[s.nation] < -35);
+    if (!hostileEff) continue;
+    const dd = dist(p.x, p.y, s.x, s.y);
+    if (dd < 55 && dd < bd2){ bd2 = dd; boardTarget = s; }
+  }
+  const boardHintEl = document.getElementById('boardHint');
+  if (!game.dockedPort && boardTarget){
+    boardHintEl.style.display = 'block';
+    document.getElementById('boardTargetName').textContent = boardTarget.name;
+    game._boardTarget = boardTarget;
+  } else {
+    boardHintEl.style.display = 'none';
+    game._boardTarget = null;
+  }
+
   updateHud();
 }
 
 function tryDock(){
-  if (game.dockedPort) return;
+  if (game.dockedPort || duel.active) return;
   if (game._nearPort){
     game.dockedPort = game._nearPort;
     game.player.sailPower = 0;
@@ -610,10 +685,197 @@ function tryDock(){
   }
 }
 
+function tryBoard(){
+  if (game.dockedPort || duel.active) return;
+  if (game._boardTarget) openDuel(game._boardTarget);
+}
+
 function endGame(text){
   game.started = false;
   document.getElementById('gameOverText').textContent = text;
   document.getElementById('gameOverScreen').style.display='flex';
+}
+
+//////////////////////// SWORD DUELING ////////////////////////
+const CLASS_TOUGHNESS = { sloop:0, brig:12, merchant:16, galleon:32, frigate:28 };
+
+function duelLog(msg){
+  duel.log.unshift(msg);
+  if (duel.log.length>4) duel.log.pop();
+  const el = document.getElementById('duelLog');
+  if (el) el.innerHTML = duel.log.map(m=>`<div>${m}</div>`).join('');
+}
+
+function openDuel(enemyShip){
+  const hullFrac = clamp(enemyShip.hull/enemyShip.hullMax, 0, 1);
+  const toughness = CLASS_TOUGHNESS[enemyShip.cls] || 10;
+  duel.active = true;
+  duel.enemy = enemyShip;
+  duel.enemyResolveMax = Math.round(40 + hullFrac*50 + toughness);
+  duel.enemyResolve = duel.enemyResolveMax;
+  duel.playerResolveMax = 100;
+  duel.playerResolve = 100;
+  duel.playerCooldown = 0;
+  duel.playerGuard = false;
+  duel.enemyGuard = false;
+  duel.enemyTimer = randi(40,80);
+  duel.flashP = 0; duel.flashE = 0;
+  duel.log = [];
+  document.getElementById('duelEnemyName').textContent = "Captain of the "+enemyShip.name;
+  document.getElementById('duelOverlay').style.display='flex';
+  duelLog(`You leap aboard and cross blades with the captain of the ${enemyShip.name}!`);
+}
+
+function closeDuel(){
+  duel.active = false;
+  duel.enemy = null;
+  document.getElementById('duelOverlay').style.display='none';
+}
+
+function updateDuel(dt){
+  if (duel.playerCooldown>0) duel.playerCooldown -= dt;
+  duel.playerGuard = !!game.keys['shift'];
+
+  duel.enemyTimer -= dt;
+  if (duel.enemyTimer<=0){
+    const resolveFrac = duel.enemyResolve/duel.enemyResolveMax;
+    const willGuard = Math.random() < (resolveFrac<0.4 ? 0.55 : 0.25);
+    if (willGuard){
+      duel.enemyGuard = true;
+      duel.enemyTimer = randi(30,55);
+    } else {
+      duel.enemyGuard = false;
+      enemyDuelAttack();
+      duel.enemyTimer = randi(45,90);
+    }
+  }
+  checkDuelEnd();
+}
+
+function playerDuelAttack(){
+  if (!duel.active || duel.playerCooldown>0 || duel.playerGuard) return;
+  duel.playerCooldown = 22;
+  const hitChance = 0.6 - (duel.enemyGuard? 0.35:0);
+  if (Math.random() < hitChance){
+    const dmg = randi(11,19);
+    duel.enemyResolve = Math.max(0, duel.enemyResolve-dmg);
+    duel.flashE = 10;
+    duelLog(`A solid hit! (&minus;${dmg})`);
+  } else {
+    duelLog(duel.enemyGuard ? "The captain parries your blade!" : "Your thrust goes wide!");
+  }
+  checkDuelEnd();
+}
+
+function enemyDuelAttack(){
+  const hitChance = 0.55 - (duel.playerGuard? 0.4:0);
+  if (Math.random() < hitChance){
+    const dmg = randi(9,17);
+    duel.playerResolve = Math.max(0, duel.playerResolve-dmg);
+    duel.flashP = 10;
+    duelLog(`The enemy captain strikes! (&minus;${dmg})`);
+  } else {
+    duelLog(duel.playerGuard ? "You parry the blow!" : "The enemy's strike misses!");
+  }
+}
+
+function checkDuelEnd(){
+  if (duel.enemyResolve<=0) winDuel();
+  else if (duel.playerResolve<=0) loseDuel();
+}
+
+function winDuel(){
+  const enemy = duel.enemy;
+  const p = game.player;
+  const goldBonus = randi(80, 100 + Math.floor(SHIP_CLASSES[enemy.cls].cost/12));
+  game.gold += goldBonus;
+  const room = p.crewMax - p.crew;
+  const joined = Math.max(0, Math.min(randi(2,8), room));
+  p.crew += joined;
+  let lootedGoods = [];
+  for (const g in enemy.cargo){
+    const amt = enemy.cargo[g];
+    if (amt<=0) continue;
+    const roomC = p.cargoMax - p.cargoTotal();
+    const take = Math.min(amt, roomC);
+    if (take>0){ p.cargo[g] = (p.cargo[g]||0)+take; lootedGoods.push(`${take} ${g}`); }
+  }
+  game.npcShips = game.npcShips.filter(s=>s!==enemy);
+  game.reputation[enemy.nation] = clamp(game.reputation[enemy.nation]-10, -100, 100);
+  logMsg(`You bested the captain of the <b>${enemy.name}</b> in a duel and captured the ship! `+
+    `+${goldBonus}g${joined>0? ', '+joined+' crew joined you':''}${lootedGoods.length? ', plundered '+lootedGoods.join(', '):''}.`);
+  closeDuel();
+}
+
+function loseDuel(){
+  const enemy = duel.enemy;
+  const p = game.player;
+  const crewLoss = randi(1,4);
+  p.crew = Math.max(1, p.crew-crewLoss);
+  const goldLoss = Math.min(game.gold, randi(30,120));
+  game.gold -= goldLoss;
+  enemy.hull = Math.min(enemy.hullMax, enemy.hull + enemy.hullMax*0.2);
+  enemy.aiState = 'patrol';
+  p.x -= Math.cos(p.heading)*60; p.y -= Math.sin(p.heading)*60;
+  logMsg(`You were bested in the duel and forced to retreat! Lost ${crewLoss} crew and ${goldLoss}g.`);
+  closeDuel();
+}
+
+function fleeDuel(){
+  if (!duel.active) return;
+  const enemy = duel.enemy;
+  if (enemy) enemy.aiState = 'patrol';
+  logMsg(`You break off the duel and retreat to your ship.`);
+  closeDuel();
+}
+
+const duelCanvas = document.getElementById('duelCanvas');
+const duelCtx = duelCanvas.getContext('2d');
+
+function drawFencer(c,x,y,color,guarding,flashing,facing){
+  c.save();
+  c.translate(x,y);
+  c.scale(facing,1);
+  c.strokeStyle = '#20140a'; c.lineWidth = 4;
+  c.beginPath(); c.moveTo(0,0); c.lineTo(-8,26); c.moveTo(0,0); c.lineTo(8,26); c.stroke();
+  c.fillStyle = flashing ? '#ffffff' : color;
+  c.beginPath(); c.ellipse(0,-24,10,20,0,0,TAU); c.fill();
+  c.beginPath(); c.arc(0,-48,9,0,TAU); c.fillStyle = '#e8c9a0'; c.fill();
+  c.strokeStyle = '#ddd'; c.lineWidth = 3;
+  if (guarding){
+    c.beginPath(); c.moveTo(6,-30); c.lineTo(-16,-38); c.stroke();
+  } else {
+    c.beginPath(); c.moveTo(6,-30); c.lineTo(34,-40); c.stroke();
+  }
+  c.restore();
+}
+
+function renderDuelScene(){
+  const w = duelCanvas.width, h = duelCanvas.height;
+  duelCtx.clearRect(0,0,w,h);
+  const grad = duelCtx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'#1a2a33'); grad.addColorStop(1,'#3a2a18');
+  duelCtx.fillStyle = grad; duelCtx.fillRect(0,0,w,h);
+  duelCtx.strokeStyle = 'rgba(0,0,0,0.25)'; duelCtx.lineWidth = 2;
+  for (let x=0; x<w; x+=28){
+    duelCtx.beginPath(); duelCtx.moveTo(x,h*0.55); duelCtx.lineTo(x,h); duelCtx.stroke();
+  }
+  duelCtx.fillStyle = 'rgba(0,0,0,0.15)'; duelCtx.fillRect(0,h*0.55,w,3);
+
+  const midX = w/2;
+  const sway = clamp((duel.playerResolve-duel.enemyResolve)*0.4, -40, 40);
+  const px = midX-90 - sway;
+  const ex = midX+90 - sway;
+  const gy = h*0.72;
+
+  drawFencer(duelCtx, px, gy, '#caa15a', duel.playerGuard, duel.flashP>0, 1);
+  drawFencer(duelCtx, ex, gy, '#8a3f3f', duel.enemyGuard, duel.flashE>0, -1);
+
+  if (duel.flashP>0) duel.flashP--;
+  if (duel.flashE>0) duel.flashE--;
+
+  document.getElementById('duelPlayerBar').style.width = clamp(duel.playerResolve/duel.playerResolveMax,0,1)*100+'%';
+  document.getElementById('duelEnemyBar').style.width = clamp(duel.enemyResolve/duel.enemyResolveMax,0,1)*100+'%';
 }
 
 //////////////////////// HUD ////////////////////////
