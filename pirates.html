@@ -167,8 +167,11 @@
       Take command of your ship upon the Spanish Main. Trade, plunder, and battle across a scattering
       of islands and colonial ports. Sail with <b>W/S</b> to trim sail speed, <b>A/D</b> to turn,
       fire cannons with <b>Q</b> (port) / <b>E</b> (starboard), and dock at any port by sailing close
-      and pressing <b>F</b>. Grapple alongside a hostile ship and press <b>B</b> to board her and
-      duel the enemy captain blade to blade — win, and you capture the prize instead of sinking her.
+      and pressing <b>F</b>. Grapple alongside a hostile ship — or bombard a town's defenses into
+      ruin — and press <b>B</b> to board her or storm ashore, dueling the enemy captain or garrison
+      commander blade to blade. Win, and you capture the ship or sack the town instead of merely
+      sinking or bombarding it. But beware: cannon fire against a town wins you no friends, and its
+      batteries will return fire once you've made an enemy of the Crown that flies above it.
     </p>
     <button class="pbtn" onclick="startGame()">Set Sail</button>
   </div>
@@ -271,9 +274,12 @@ function generateWorld(){
         const angle = wr(0,TAU);
         const px = cx + Math.cos(angle)*radius*0.92;
         const py = cy + Math.sin(angle)*radius*0.92;
+        const garrison = randi(2,9);
         const port = {
           name: nm, nation, x:px, y:py, islandRef: island,
-          prices: {}, garrison: randi(2,9), id: ports.length,
+          prices: {}, garrison, id: ports.length,
+          isPort: true, alerted:false, reload:0,
+          hullMax: 70 + garrison*20, hull: 70 + garrison*20,
         };
         GOODS.forEach(g=>{
           const mult = wr(0.55,1.85);
@@ -536,6 +542,20 @@ function damageShip(ship, dmg, attackerIsPlayer){
 let dmgFlashT=0;
 function flashDamage(){ dmgFlashT = 0.25; }
 
+function damagePort(port, dmg){
+  if (port.hull<=0) return;
+  const wasHostile = game.reputation[port.nation] < -35;
+  port.hull = Math.max(0, port.hull-dmg);
+  port.alerted = true;
+  game.reputation[port.nation] = clamp(game.reputation[port.nation]-3, -100, 100);
+  if (!wasHostile && game.reputation[port.nation] < -35){
+    logMsg(`Cannon fire rains on <b>${port.name}</b>! ${NATIONS[port.nation].name} will not forget this outrage.`);
+  }
+  if (port.hull<=0){
+    logMsg(`The defenses of <b>${port.name}</b> lie in ruins! Sail close and press <b>B</b> to storm the town.`);
+  }
+}
+
 function onShipSunk(ship, byPlayer){
   if (ship === game.player){
     endGame("Your ship, "+ship.name+", has been sent to the bottom of the sea by "+
@@ -628,8 +648,36 @@ function update(dt){
         pr.life = 0;
       }
     }
+    // vs ports (only the player can bombard a town)
+    if (pr.owner===p && pr.life>0){
+      for (const port of ports){
+        if (port.hull>0 && dist(pr.x,pr.y,port.x,port.y) < 22){
+          damagePort(port, pr.dmg);
+          pr.life = 0;
+          break;
+        }
+      }
+    }
   }
   game.projectiles = game.projectiles.filter(pr=>pr.life>0);
+
+  // town batteries fire back on any nation hostile to the player
+  if (!game.dockedPort){
+    for (const port of ports){
+      const hostileEff = port.hull>0 && game.reputation[port.nation] < -35;
+      const dPort = dist(p.x,p.y,port.x,port.y);
+      if (hostileEff && dPort < 260){
+        port.reload -= dt;
+        if (port.reload<=0){
+          const a = Math.atan2(p.y-port.y, p.x-port.x);
+          game.projectiles.push({ x:port.x, y:port.y, vx:Math.cos(a)*6.5, vy:Math.sin(a)*6.5, life:70, owner:port, dmg: rand(5,11) });
+          port.reload = 75;
+        }
+      } else if (port.reload>0){
+        port.reload -= dt;
+      }
+    }
+  }
 
   if (dmgFlashT>0) dmgFlashT -= dt/60;
 
@@ -640,6 +688,10 @@ function update(dt){
     game.day += 3;
     if (game.day>30){ game.day=1; game.month++; }
     if (game.month>11){ game.month=0; game.year++; }
+    // fortifications slowly rebuild between assaults
+    for (const port of ports){
+      if (port.hull < port.hullMax) port.hull = Math.min(port.hullMax, port.hull + port.hullMax*0.06);
+    }
   }
 
   // docking hint
@@ -654,7 +706,8 @@ function update(dt){
     game._nearPort = null;
   }
 
-  // boarding hint — any hostile ship close alongside can be boarded for a duel
+  // boarding hint — any hostile ship close alongside, or any town whose defenses
+  // have been battered down, can be stormed for a duel
   let boardTarget = null, bd2 = Infinity;
   for (const s of game.npcShips){
     const hostileEff = s.hostile || (s.nation!=='pirate' && game.reputation[s.nation] < -35);
@@ -662,10 +715,17 @@ function update(dt){
     const dd = dist(p.x, p.y, s.x, s.y);
     if (dd < 55 && dd < bd2){ bd2 = dd; boardTarget = s; }
   }
+  for (const port of ports){
+    if (port.hull>0) continue;
+    const dd = dist(p.x, p.y, port.x, port.y);
+    if (dd < 70 && dd < bd2){ bd2 = dd; boardTarget = port; }
+  }
   const boardHintEl = document.getElementById('boardHint');
   if (!game.dockedPort && boardTarget){
     boardHintEl.style.display = 'block';
-    document.getElementById('boardTargetName').textContent = boardTarget.name;
+    boardHintEl.innerHTML = boardTarget.isPort
+      ? `Press <kbd>B</kbd> to storm the ruined defenses of <span>${boardTarget.name}</span>`
+      : `Press <kbd>B</kbd> to board and duel the captain of <span>${boardTarget.name}</span>`;
     game._boardTarget = boardTarget;
   } else {
     boardHintEl.style.display = 'none';
@@ -706,11 +766,13 @@ function duelLog(msg){
   if (el) el.innerHTML = duel.log.map(m=>`<div>${m}</div>`).join('');
 }
 
-function openDuel(enemyShip){
-  const hullFrac = clamp(enemyShip.hull/enemyShip.hullMax, 0, 1);
-  const toughness = CLASS_TOUGHNESS[enemyShip.cls] || 10;
+function openDuel(target){
+  const isPort = !!target.isPort;
+  const hullFrac = clamp(target.hull/target.hullMax, 0, 1);
+  const toughness = isPort ? target.garrison*7 : (CLASS_TOUGHNESS[target.cls] || 10);
   duel.active = true;
-  duel.enemy = enemyShip;
+  duel.enemy = target;
+  duel.isPort = isPort;
   duel.enemyResolveMax = Math.round(40 + hullFrac*50 + toughness);
   duel.enemyResolve = duel.enemyResolveMax;
   duel.playerResolveMax = 100;
@@ -721,9 +783,13 @@ function openDuel(enemyShip){
   duel.enemyTimer = randi(40,80);
   duel.flashP = 0; duel.flashE = 0;
   duel.log = [];
-  document.getElementById('duelEnemyName').textContent = "Captain of the "+enemyShip.name;
+  document.getElementById('duelEnemyName').textContent = isPort
+    ? "Garrison Commander of "+target.name
+    : "Captain of the "+target.name;
   document.getElementById('duelOverlay').style.display='flex';
-  duelLog(`You leap aboard and cross blades with the captain of the ${enemyShip.name}!`);
+  duelLog(isPort
+    ? `You storm ashore and cross blades with the garrison commander of ${target.name}!`
+    : `You leap aboard and cross blades with the captain of the ${target.name}!`);
 }
 
 function closeDuel(){
@@ -785,6 +851,7 @@ function checkDuelEnd(){
 }
 
 function winDuel(){
+  if (duel.isPort) { winTownDuel(); return; }
   const enemy = duel.enemy;
   const p = game.player;
   const goldBonus = randi(80, 100 + Math.floor(SHIP_CLASSES[enemy.cls].cost/12));
@@ -807,7 +874,32 @@ function winDuel(){
   closeDuel();
 }
 
+function winTownDuel(){
+  const port = duel.enemy;
+  const p = game.player;
+  const goldBonus = randi(250, 250 + port.garrison*130);
+  game.gold += goldBonus;
+  const room = p.crewMax - p.crew;
+  const joined = Math.max(0, Math.min(randi(3,10), room));
+  p.crew += joined;
+  let lootedGoods = [];
+  GOODS.forEach(g=>{
+    if (Math.random()<0.5){
+      const roomC = p.cargoMax - p.cargoTotal();
+      const take = Math.min(randi(3,14), roomC);
+      if (take>0){ p.cargo[g] = (p.cargo[g]||0)+take; lootedGoods.push(`${take} ${g}`); }
+    }
+  });
+  game.reputation[port.nation] = clamp(game.reputation[port.nation]-25, -100, 100);
+  port.hull = 0;
+  port.alerted = true;
+  logMsg(`You stormed <b>${port.name}</b> and overcame its garrison! `+
+    `+${goldBonus}g${lootedGoods.length? ', plundered '+lootedGoods.join(', '):''}${joined>0? ', '+joined+' recruits joined you':''}.`);
+  closeDuel();
+}
+
 function loseDuel(){
+  if (duel.isPort) { loseTownDuel(); return; }
   const enemy = duel.enemy;
   const p = game.player;
   const crewLoss = randi(1,4);
@@ -818,6 +910,19 @@ function loseDuel(){
   enemy.aiState = 'patrol';
   p.x -= Math.cos(p.heading)*60; p.y -= Math.sin(p.heading)*60;
   logMsg(`You were bested in the duel and forced to retreat! Lost ${crewLoss} crew and ${goldLoss}g.`);
+  closeDuel();
+}
+
+function loseTownDuel(){
+  const port = duel.enemy;
+  const p = game.player;
+  const crewLoss = randi(2,6);
+  p.crew = Math.max(1, p.crew-crewLoss);
+  const goldLoss = Math.min(game.gold, randi(50,180));
+  game.gold -= goldLoss;
+  port.hull = Math.min(port.hullMax, port.hull + port.hullMax*0.3);
+  p.x -= Math.cos(p.heading)*60; p.y -= Math.sin(p.heading)*60;
+  logMsg(`The garrison of <b>${port.name}</b> repels your assault! Lost ${crewLoss} crew and ${goldLoss}g.`);
   closeDuel();
 }
 
@@ -938,17 +1043,29 @@ function drawIsland(isl){
 function drawPort(port){
   const [sx,sy] = worldToScreen(port.x,port.y);
   if (sx<-40||sx>canvas.width+40||sy<-40||sy>canvas.height+40) return;
+  const breached = port.hull<=0;
   ctx.beginPath();
   ctx.arc(sx,sy,7,0,TAU);
-  ctx.fillStyle = NATIONS[port.nation].color;
+  ctx.fillStyle = breached ? '#2a1a10' : NATIONS[port.nation].color;
   ctx.fill();
-  ctx.strokeStyle = '#20140a';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = breached ? '#e74c3c' : '#20140a';
+  ctx.lineWidth = breached ? 3 : 2;
   ctx.stroke();
   ctx.fillStyle = '#fff3d6';
   ctx.font = '12px Georgia';
   ctx.textAlign = 'center';
   ctx.fillText(port.name, sx, sy-12);
+
+  if (port.hull < port.hullMax){
+    const d = dist(port.x,port.y,game.player.x,game.player.y);
+    if (d<500){
+      const w=40;
+      ctx.fillStyle='#300';
+      ctx.fillRect(sx-w/2, sy+12, w, 4);
+      ctx.fillStyle = breached ? '#e74c3c' : '#e0a83a';
+      ctx.fillRect(sx-w/2, sy+12, w*clamp(port.hull/port.hullMax,0,1), 4);
+    }
+  }
 }
 
 function drawShip(ship, isPlayer){
