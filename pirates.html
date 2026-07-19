@@ -110,6 +110,13 @@
   #gameOverScreen h1 { color:#e74c3c; font-size:44px; margin-bottom:14px; }
   #gameOverScreen p { color:#e0c88a; margin-bottom:20px; max-width:500px; }
 
+  #endingScreen {
+    position:absolute; inset:0; background:radial-gradient(ellipse at center, #3a2a10 0%, #1a1206 85%);
+    display:none; z-index:100; align-items:center; justify-content:center; flex-direction:column; text-align:center;
+  }
+  #endingScreen h1 { color:#ffd97a; font-size:44px; margin-bottom:14px; text-shadow:2px 2px 0 #3a2a10; }
+  #endingScreen p { color:#f0e6c8; margin-bottom:20px; max-width:520px; line-height:1.7; }
+
   ::-webkit-scrollbar { width:10px; }
   ::-webkit-scrollbar-thumb { background:#5a3f16; border-radius:5px; }
 </style>
@@ -181,6 +188,17 @@
     <p id="gameOverText">Your ship has been lost to the depths...</p>
     <button class="pbtn" onclick="location.reload()">Start a New Voyage</button>
   </div>
+
+  <div id="endingScreen">
+    <h1>💍 A Happy Ending</h1>
+    <p>
+      Captain <b id="captainNameWed">You</b> weds <b id="weddingDaughter">the Governor's daughter</b>
+      of <b id="weddingNation"></b> in <b id="weddingPort"></b> on <b id="weddingDate"></b>, retiring from
+      the sea with <b id="weddingGold">0</b> gold and a legend that will be sung in taverns for generations
+      to come.
+    </p>
+    <button class="pbtn" onclick="location.reload()">Start a New Voyage</button>
+  </div>
 </div>
 
 <script>
@@ -233,6 +251,13 @@ const PORT_NAMES = [
   "Nombre de Dios","Rio de la Hacha", "Matanzas", "Puerto Plata"
 ];
 
+const GOVERNOR_DAUGHTER_NAMES = {
+  england: ["Elizabeth","Charlotte","Margaret","Eleanor","Catherine","Anne","Beatrice"],
+  spain:   ["Isabella","Catalina","Beatriz","Inés","Mercedes","Pilar","Rosario"],
+  france:  ["Marguerite","Claudine","Joséphine","Adrienne","Célestine","Victoire"],
+  dutch:   ["Johanna","Willemina","Geertruida","Cornelia","Margaretha","Anneke"],
+};
+
 const SHIP_CLASSES = {
   sloop:   { name:"Sloop",      cost:0,     hullMax:60,  crewMax:20,  cargoMax:40,  cannons:6,  speed:2.4, turn:0.055, sail:"sloop" },
   brig:    { name:"Brigantine", cost:2200,  hullMax:110, crewMax:45,  cargoMax:80,  cannons:14, speed:2.1, turn:0.045, sail:"brig" },
@@ -280,6 +305,8 @@ function generateWorld(){
           prices: {}, garrison, id: ports.length,
           isPort: true, alerted:false, reload:0,
           hullMax: 70 + garrison*20, hull: 70 + garrison*20,
+          daughterName: nation!=='pirate' ? choice(GOVERNOR_DAUGHTER_NAMES[nation]) : null,
+          affection: 0,
         };
         GOODS.forEach(g=>{
           const mult = wr(0.55,1.85);
@@ -1354,16 +1381,21 @@ function openGovernor(portId){
   const rep = game.reputation[port.nation];
   const missionReward = randi(200,600);
   const targetPort = choice(ports.filter(pp=>pp.id!==portId));
+  const canCourt = port.nation!=='pirate' && rep>=0;
+  const courtBtn = port.nation==='pirate'
+    ? `<button class="pbtn" disabled title="No governor's daughter in a pirate haven">💃 Call on the Governor's Daughter</button>`
+    : `<button class="pbtn" ${canCourt?'':'disabled'} onclick="openCourting(${portId})">💃 Call on ${port.daughterName}, the Governor's Daughter</button>`;
   openModal(`
     <span class="closeX" onclick="openPortMenu(${portId})" style="pointer-events:all;">✕</span>
     <h2>Governor's House — ${port.name}</h2>
     <p>The Governor of ${port.name}, representing ${NATIONS[port.nation].name}, receives you.</p>
-    <p>Your standing: <b>${rep}</b></p>
+    <p>Your standing: <b>${rep}</b>${!canCourt && port.nation!=='pirate' ? ' — improve your standing before you may call on his daughter.' : ''}</p>
     <h3>Available Commission</h3>
     <p>"Deliver word to our envoy in <b>${targetPort.name}</b> and we shall reward you handsomely — ${missionReward} gold, and improved standing with the Crown."</p>
     <div class="btnRow">
       <button class="pbtn" onclick="acceptMission(${portId},'${targetPort.id}',${missionReward})">Accept Commission</button>
       <button class="pbtn" onclick="declareOnNation(${portId})">Declare Hostility on a Rival Nation</button>
+      ${courtBtn}
       <button class="pbtn" onclick="openPortMenu(${portId})">Back</button>
     </div>
   `);
@@ -1382,6 +1414,71 @@ function declareOnNation(portId){
   game.reputation[port.nation] = clamp(game.reputation[port.nation]+10,-100,100);
   logMsg(`${NATIONS[port.nation].name} has authorized privateering against ${NATIONS[target].name}. Their ships may now attack you on sight.`);
   openGovernor(portId);
+}
+
+//////////////////////// COURTING THE GOVERNOR'S DAUGHTER ////////////////////////
+function openCourting(portId){
+  const port = ports[portId];
+  const rep = game.reputation[port.nation];
+  if (port.nation==='pirate'){ openGovernor(portId); return; }
+  if (rep < 0){
+    openModal(`
+      <span class="closeX" onclick="openGovernor(${portId})" style="pointer-events:all;">✕</span>
+      <h2>${port.daughterName}</h2>
+      <p>The Governor will not permit a man of your poor reputation with ${NATIONS[port.nation].name} anywhere near his daughter.</p>
+      <div class="btnRow"><button class="pbtn" onclick="openGovernor(${portId})">Back</button></div>
+    `);
+    return;
+  }
+  const aff = port.affection;
+  const flavor = aff<30 ? `${port.daughterName} regards you with polite curiosity.`
+    : aff<60 ? `${port.daughterName} smiles whenever you enter the room.`
+    : aff<100 ? `${port.daughterName}'s eyes light up at the sight of you.`
+    : `${port.daughterName} blushes deeply — she is clearly smitten with you.`;
+  openModal(`
+    <span class="closeX" onclick="openGovernor(${portId})" style="pointer-events:all;">✕</span>
+    <h2>Calling on ${port.daughterName}</h2>
+    <p><i>${flavor}</i></p>
+    <p>Affection: <b>${aff}/100</b></p>
+    <div class="btnRow">
+      <button class="pbtn" onclick="courtAction(${portId},'compliment')">Pay a Compliment</button>
+      <button class="pbtn" onclick="courtAction(${portId},'dance')">Ask Her to Dance</button>
+      <button class="pbtn" ${game.gold<200?'disabled':''} onclick="courtAction(${portId},'gift')">Offer a Gift (200g)</button>
+      ${aff>=100 ? `<button class="pbtn" onclick="proposeMarriage(${portId})">💍 Propose Marriage</button>` : ''}
+    </div>
+    <div class="btnRow"><button class="pbtn" onclick="openGovernor(${portId})">Back</button></div>
+  `);
+}
+
+function courtAction(portId, action){
+  const port = ports[portId];
+  let msg;
+  if (action==='compliment'){
+    if (Math.random()<0.7){ port.affection = Math.min(100, port.affection+10); msg = `${port.daughterName} laughs warmly at your flattery.`; }
+    else { port.affection = Math.max(0, port.affection-5); msg = `Your compliment falls flat — ${port.daughterName} seems unimpressed.`; }
+  } else if (action==='dance'){
+    if (Math.random()<0.6){ port.affection = Math.min(100, port.affection+15); msg = `You dance a fine reel together. ${port.daughterName} is delighted.`; }
+    else { port.affection = Math.max(0, port.affection-8); msg = `You stumble through the steps. ${port.daughterName} hides a smile behind her fan.`; }
+  } else if (action==='gift'){
+    if (game.gold < 200){ openCourting(portId); return; }
+    game.gold -= 200;
+    port.affection = Math.min(100, port.affection+20);
+    msg = `${port.daughterName} is delighted with your gift.`;
+  }
+  logMsg(msg);
+  openCourting(portId);
+}
+
+function proposeMarriage(portId){
+  const port = ports[portId];
+  closeModal();
+  document.getElementById('weddingDaughter').textContent = port.daughterName;
+  document.getElementById('weddingNation').textContent = NATIONS[port.nation].name;
+  document.getElementById('weddingPort').textContent = port.name;
+  document.getElementById('weddingDate').textContent = `${MONTHS[game.month]} ${game.day}, ${game.year}`;
+  document.getElementById('weddingGold').textContent = game.gold;
+  document.getElementById('endingScreen').style.display = 'flex';
+  game.started = false;
 }
 
 // mission completion check
