@@ -179,6 +179,9 @@
       commander blade to blade. Win, and you capture the ship or sack the town instead of merely
       sinking or bombarding it. But beware: cannon fire against a town wins you no friends, and its
       batteries will return fire once you've made an enemy of the Crown that flies above it.
+      Keep an ear open in the tavern, too — word of a heavily escorted <b>Spanish Treasure Fleet</b>
+      or an overland <b>silver train</b> passing through some unlucky port means a fortune for
+      whoever is bold enough to seize it.
     </p>
     <button class="pbtn" onclick="startGame()">Set Sail</button>
   </div>
@@ -316,6 +319,21 @@ function generateWorld(){
       }
     }
   }
+
+  // guarantee every colonial power has enough ports for nation-specific features
+  // (governor's daughters, the Spanish treasure fleet, the silver train) to always work
+  const MIN_NATION_PORTS = 3;
+  NATION_KEYS.filter(n=>n!=='pirate').forEach(nation=>{
+    let count = ports.filter(p=>p.nation===nation).length;
+    if (count >= MIN_NATION_PORTS) return;
+    const convertible = ports.filter(p=>p.nation!==nation);
+    while (count < MIN_NATION_PORTS && convertible.length){
+      const port = convertible.splice(randi(0,convertible.length-1),1)[0];
+      port.nation = nation;
+      port.daughterName = choice(GOVERNOR_DAUGHTER_NAMES[nation]);
+      count++;
+    }
+  });
 }
 generateWorld();
 
@@ -417,8 +435,12 @@ let game = {
   keys: {},
   paused:false,
   fleetName: "The Sea Falcon",
+  fleetTimer: rand(90,150),
+  silverTrainTimer: rand(60,110),
+  silverTrainPort: null,
 };
 NATION_KEYS.forEach(n=> game.reputation[n]=0);
+let fleetIdCounter = 1;
 
 let duel = {
   active:false, enemy:null,
@@ -506,6 +528,33 @@ function spawnNpc(){
   game.npcShips.push(ship);
 }
 
+function spawnTreasureFleet(){
+  const spanishPorts = ports.filter(p=>p.nation==='spain');
+  if (spanishPorts.length < 2) return;
+  const origin = choice(spanishPorts);
+  const dest = choice(spanishPorts.filter(p=>p!==origin));
+  const fleetId = fleetIdCounter++;
+  const nShips = randi(3,5);
+  const nEscorts = randi(1,2);
+  for (let i=0;i<nShips+nEscorts;i++){
+    const isEscort = i >= nShips;
+    const cls = isEscort ? 'frigate' : 'galleon';
+    const ox = origin.x + rand(-40,40);
+    const oy = origin.y + rand(-40,40);
+    const label = isEscort ? "Spanish Escort Frigate" : "Spanish Treasure Galleon";
+    const ship = new Ship(cls, ox, oy, { nation:'spain', hostile:false, name: label, aiState:'fleet' });
+    ship.fleetId = fleetId;
+    ship.fleetDest = dest;
+    ship.fleetIsEscort = isEscort;
+    if (!isEscort){
+      GOODS.forEach(g=>{ ship.cargo[g] = randi(8,20); });
+      ship.goldCargo = randi(400,900);
+    }
+    game.npcShips.push(ship);
+  }
+  logMsg(`Word spreads fast: the <b>Spanish Treasure Fleet</b> has set sail from <b>${origin.name}</b>, bound for <b>${dest.name}</b>!`);
+}
+
 function updateNpcAI(ship, dt){
   const p = game.player;
   const d = dist(ship.x,ship.y,p.x,p.y);
@@ -516,7 +565,7 @@ function updateNpcAI(ship, dt){
   } else if (!ship.hostile && ship.nation!=='pirate' && d < 900 && game.reputation[ship.nation] < -35){
     ship.aiState = 'attack';
   } else if (ship.aiState==='attack' && d>1100){
-    ship.aiState='patrol';
+    ship.aiState = ship.fleetId ? 'fleet' : 'patrol';
   }
 
   if (ship.aiState === 'attack'){
@@ -539,7 +588,13 @@ function updateNpcAI(ship, dt){
     ship.heading += clamp(diff, -ship.turnRate*dt, ship.turnRate*dt);
     ship.sailPower = 1;
     ship.fleeTimer -= dt;
-    if (ship.fleeTimer<=0) ship.aiState='patrol';
+    if (ship.fleeTimer<=0) ship.aiState = ship.fleetId ? 'fleet' : 'patrol';
+  } else if (ship.aiState === 'fleet'){
+    const dest = ship.fleetDest;
+    const desiredHeading = Math.atan2(dest.y-ship.y, dest.x-ship.x);
+    const diff = angDiff(ship.heading, desiredHeading);
+    ship.heading += clamp(diff, -ship.turnRate*dt, ship.turnRate*dt);
+    ship.sailPower = 0.55;
   } else {
     // patrol / wander
     ship.wanderAngle += rand(-0.02,0.02)*dt;
@@ -557,6 +612,10 @@ function damageShip(ship, dmg, attackerIsPlayer){
   ship.crew = Math.max(0, ship.crew - crewLoss);
   if (ship===game.player){
     flashDamage();
+  }
+  if (attackerIsPlayer && ship.fleetId){
+    // the whole convoy rallies to defend an attacked fleet member
+    for (const s of game.npcShips){ if (s.fleetId===ship.fleetId) s.aiState = 'attack'; }
   }
   if (ship.hull <= 0 && !ship.sunk){
     ship.sunk = true;
@@ -591,7 +650,7 @@ function onShipSunk(ship, byPlayer){
   }
   game.npcShips = game.npcShips.filter(s=>s!==ship);
   if (byPlayer){
-    const lootGold = randi(50, 60+ship.crewMax*8);
+    const lootGold = randi(50, 60+ship.crewMax*8) + (ship.goldCargo||0);
     game.gold += lootGold;
     let lootedGoods = [];
     for (const g in ship.cargo){
@@ -604,8 +663,10 @@ function onShipSunk(ship, byPlayer){
         lootedGoods.push(`${take} ${g}`);
       }
     }
-    logMsg(`You sank the <b>${ship.name}</b>! Plundered ${lootGold} gold${lootedGoods.length? ' and '+lootedGoods.join(', '):''}.`);
+    const treasureNote = ship.goldCargo ? ` A chest of Spanish silver alone was worth ${ship.goldCargo}g!` : '';
+    logMsg(`You sank the <b>${ship.name}</b>! Plundered ${lootGold} gold${lootedGoods.length? ' and '+lootedGoods.join(', '):''}.${treasureNote}`);
     game.reputation[ship.nation] = clamp(game.reputation[ship.nation]-8, -100, 100);
+    if (ship.fleetId) game.reputation[ship.nation] = clamp(game.reputation[ship.nation]-5, -100, 100);
     if (ship.nation==='pirate') game.reputation['pirate'] = clamp(game.reputation['pirate']-4,-100,100);
     // chance a few crew join you
     if (Math.random()<0.4 && game.player.crew < game.player.crewMax){
@@ -652,8 +713,49 @@ function update(dt){
   if (game.spawnTimer<=0){ spawnNpc(); game.spawnTimer = rand(4,9); }
   for (const s of game.npcShips){ updateNpcAI(s, dt); }
 
-  // remove far-away npcs to keep world light
-  game.npcShips = game.npcShips.filter(s=> dist(s.x,s.y,p.x,p.y) < 2600);
+  // treasure fleet scheduling
+  game.fleetTimer -= dt/60;
+  if (game.fleetTimer<=0){ spawnTreasureFleet(); game.fleetTimer = rand(200,360); }
+
+  // treasure fleets that reach their destination unload safely and disperse
+  const arrivedFleetIds = new Set();
+  const arrivedFleetNames = new Set();
+  for (const s of game.npcShips){
+    if (s.fleetId && s.aiState!=='attack' && dist(s.x,s.y,s.fleetDest.x,s.fleetDest.y) < 90){
+      arrivedFleetIds.add(s.fleetId);
+      arrivedFleetNames.add(s.fleetDest.name);
+    }
+  }
+  if (arrivedFleetIds.size>0){
+    game.npcShips = game.npcShips.filter(s=> !(s.fleetId && arrivedFleetIds.has(s.fleetId)));
+    arrivedFleetNames.forEach(name=>
+      logMsg(`The Spanish treasure fleet reaches <b>${name}</b> safely, its riches beyond your grasp this season.`));
+  }
+
+  // silver train scheduling
+  if (!game.silverTrainPort){
+    game.silverTrainTimer -= dt/60;
+    if (game.silverTrainTimer<=0){
+      const spanishPorts = ports.filter(pp=>pp.nation==='spain');
+      if (spanishPorts.length){
+        game.silverTrainPort = choice(spanishPorts);
+        game.silverTrainExpire = rand(70,130);
+        logMsg(`Word in the taverns: a Spanish <b>silver train</b> is moving through <b>${game.silverTrainPort.name}</b>!`);
+      } else {
+        game.silverTrainTimer = rand(120,200);
+      }
+    }
+  } else {
+    game.silverTrainExpire -= dt/60;
+    if (game.silverTrainExpire<=0){
+      logMsg(`The silver train has already moved on from <b>${game.silverTrainPort.name}</b>.`);
+      game.silverTrainPort = null;
+      game.silverTrainTimer = rand(150,260);
+    }
+  }
+
+  // remove far-away npcs to keep world light (treasure fleets sail on regardless of distance)
+  game.npcShips = game.npcShips.filter(s=> s.fleetId || dist(s.x,s.y,p.x,p.y) < 2600);
 
   // projectiles
   for (const pr of game.projectiles){
@@ -881,7 +983,7 @@ function winDuel(){
   if (duel.isPort) { winTownDuel(); return; }
   const enemy = duel.enemy;
   const p = game.player;
-  const goldBonus = randi(80, 100 + Math.floor(SHIP_CLASSES[enemy.cls].cost/12));
+  const goldBonus = randi(80, 100 + Math.floor(SHIP_CLASSES[enemy.cls].cost/12)) + (enemy.goldCargo||0);
   game.gold += goldBonus;
   const room = p.crewMax - p.crew;
   const joined = Math.max(0, Math.min(randi(2,8), room));
@@ -896,6 +998,7 @@ function winDuel(){
   }
   game.npcShips = game.npcShips.filter(s=>s!==enemy);
   game.reputation[enemy.nation] = clamp(game.reputation[enemy.nation]-10, -100, 100);
+  if (enemy.fleetId) game.reputation[enemy.nation] = clamp(game.reputation[enemy.nation]-5, -100, 100);
   logMsg(`You bested the captain of the <b>${enemy.name}</b> in a duel and captured the ship! `+
     `+${goldBonus}g${joined>0? ', '+joined+' crew joined you':''}${lootedGoods.length? ', plundered '+lootedGoods.join(', '):''}.`);
   closeDuel();
@@ -1113,7 +1216,10 @@ function drawShip(ship, isPlayer){
   ctx.lineTo(-4,16);
   ctx.lineTo(-7,10);
   ctx.closePath();
-  ctx.fillStyle = isPlayer ? '#caa15a' : (ship.hostile||game.reputation[ship.nation]<-35 ? '#8a3f3f' : '#8a7a5a');
+  ctx.fillStyle = isPlayer ? '#caa15a'
+    : (ship.hostile||game.reputation[ship.nation]<-35) ? '#8a3f3f'
+    : (ship.fleetId && !ship.fleetIsEscort) ? '#e0c040'
+    : '#8a7a5a';
   ctx.fill();
   ctx.strokeStyle = '#2a1a08';
   ctx.lineWidth = 1.5;
@@ -1188,7 +1294,7 @@ function drawMinimap(){
     mmCtx.fill();
   }
   for (const s of game.npcShips){
-    mmCtx.fillStyle = s.aiState==='attack' ? '#ff4444' : '#ffffffaa';
+    mmCtx.fillStyle = s.aiState==='attack' ? '#ff4444' : (s.fleetId && !s.fleetIsEscort ? '#ffd700' : '#ffffffaa');
     mmCtx.fillRect(s.x*scale-1.5, s.y*scale-1.5, 3,3);
   }
   const p = game.player;
@@ -1204,6 +1310,9 @@ function closeModal(){ overlay.style.display='none'; }
 
 function openPortMenu(port){
   const rep = game.reputation[port.nation];
+  const silverTrainBtn = (game.silverTrainPort && game.silverTrainPort.id===port.id)
+    ? `<button class="pbtn" onclick="openSilverTrainRaid(${port.id})">⚔️ Raid the Silver Train</button>`
+    : '';
   openModal(`
     <span class="closeX" onclick="leavePort()" style="pointer-events:all;">✕</span>
     <h2>${port.name} <small style="color:${NATIONS[port.nation].color}; font-size:14px;">— ${NATIONS[port.nation].name}</small></h2>
@@ -1213,6 +1322,7 @@ function openPortMenu(port){
       <button class="pbtn" onclick="openTrade(${port.id})">⚖️ Trading Post</button>
       <button class="pbtn" onclick="openShipyard(${port.id})">⚓ Shipyard</button>
       <button class="pbtn" onclick="openGovernor(${port.id})">🏛️ Governor's House</button>
+      ${silverTrainBtn}
       <button class="pbtn" onclick="leavePort()">⛵ Set Sail</button>
     </div>
   `);
@@ -1232,12 +1342,20 @@ function openTavern(portId){
   const hireCost = 25;
   const canHire = p.crew < p.crewMax;
   const rumors = [
-    "They say a Spanish treasure fleet sails near "+choice(ports).name+" this season.",
     "Watch yourself — pirate activity has been reported to the south.",
     "A merchant captain swears "+choice(GOODS)+" fetches a fine price in "+choice(ports).name+".",
     "The governor is said to be recruiting privateers against rival nations.",
     "Storms have been fierce this month; sail carefully.",
   ];
+  const anyActiveFleet = game.npcShips.some(s=>s.fleetId && !s.fleetIsEscort);
+  if (anyActiveFleet){
+    rumors.unshift("The Spanish Treasure Fleet is somewhere out on the water this season — heavily laden, and heavily escorted.");
+  } else {
+    rumors.push("They say a Spanish treasure fleet sails near "+choice(ports).name+" this season.");
+  }
+  if (game.silverTrainPort){
+    rumors.unshift(`Keep this to yourself: a Spanish silver train is passing through <b>${game.silverTrainPort.name}</b>.`);
+  }
   openModal(`
     <span class="closeX" onclick="openPortMenu(${portId})" style="pointer-events:all;">✕</span>
     <h2>The Tavern — ${port.name}</h2>
@@ -1479,6 +1597,47 @@ function proposeMarriage(portId){
   document.getElementById('weddingGold').textContent = game.gold;
   document.getElementById('endingScreen').style.display = 'flex';
   game.started = false;
+}
+
+//////////////////////// SILVER TRAIN ////////////////////////
+function openSilverTrainRaid(portId){
+  const port = ports[portId];
+  const p = game.player;
+  const successChance = clamp(0.35 + (p.crew - port.garrison*10)/220, 0.15, 0.85);
+  openModal(`
+    <span class="closeX" onclick="openPortMenu(${portId})" style="pointer-events:all;">✕</span>
+    <h2>The Silver Train — ${port.name}</h2>
+    <p>Local word has it a shipment of Spanish silver is being escorted through the town this very week.
+    A raiding party might seize it — but the garrison of ${port.garrison} soldiers won't be caught
+    unaware twice.</p>
+    <p>Your crew: <b>${p.crew}</b>. Estimated chance of success: <b>${Math.round(successChance*100)}%</b>.</p>
+    <div class="btnRow">
+      <button class="pbtn" onclick="raidSilverTrain(${portId})">⚔️ Lead the Raid</button>
+      <button class="pbtn" onclick="openPortMenu(${portId})">Not Today</button>
+    </div>
+  `);
+}
+
+function raidSilverTrain(portId){
+  const port = ports[portId];
+  const p = game.player;
+  const successChance = clamp(0.35 + (p.crew - port.garrison*10)/220, 0.15, 0.85);
+  if (Math.random() < successChance){
+    const gold = randi(500, 500 + port.garrison*140);
+    game.gold += gold;
+    const crewLoss = randi(1,4);
+    p.crew = Math.max(1, p.crew-crewLoss);
+    game.reputation[port.nation] = clamp(game.reputation[port.nation]-15, -100, 100);
+    logMsg(`Your crew ambushes the silver train near <b>${port.name}</b>! Plundered ${gold}g, losing ${crewLoss} crew in the skirmish.`);
+  } else {
+    const crewLoss = randi(4,10);
+    p.crew = Math.max(1, p.crew-crewLoss);
+    game.reputation[port.nation] = clamp(game.reputation[port.nation]-8, -100, 100);
+    logMsg(`The garrison of <b>${port.name}</b> was waiting for you! The raid fails — you lose ${crewLoss} crew fleeing back to your ship.`);
+  }
+  game.silverTrainPort = null;
+  game.silverTrainTimer = rand(150,260);
+  openPortMenu(port);
 }
 
 // mission completion check
