@@ -19,6 +19,13 @@
   }
   #topbar .stat { margin-right:18px; white-space:nowrap; }
   #topbar .stat b { color:#ffd97a; }
+
+  #muteBtn {
+    pointer-events:all; cursor:pointer; background:#1b120a; border:1px solid #7a5a2a; color:#e0c88a;
+    font-size:16px; width:32px; height:32px; border-radius:4px; display:flex; align-items:center;
+    justify-content:center; flex-shrink:0;
+  }
+  #muteBtn:hover { background:#3a2a10; }
   .hp-bar-outer, .crew-bar-outer { display:inline-block; width:80px; height:10px; background:#210; border:1px solid #7a5a2a; vertical-align:middle; margin-left:4px; }
   .hp-bar-inner { height:100%; background:linear-gradient(to right,#c0392b,#e74c3c); }
   .crew-bar-inner { height:100%; background:linear-gradient(to right,#1f6b3a,#2ecc71); }
@@ -133,10 +140,11 @@
         <span class="stat">Gold: <b id="goldStat">800</b></span>
         <span class="stat">Ship: <b id="shipName">Sloop</b></span>
       </div>
-      <div>
+      <div style="display:flex; align-items:center;">
         <span class="stat">Hull <span class="hp-bar-outer"><span id="hpBar" class="hp-bar-inner" style="width:100%"></span></span></span>
         <span class="stat">Crew <b id="crewStat">18</b>/<b id="crewMaxStat">18</b> <span class="crew-bar-outer"><span id="crewBar" class="crew-bar-inner" style="width:100%"></span></span></span>
-        <span class="stat">Cargo <b id="cargoStat">0</b>/<b id="cargoMaxStat">40</b></span>
+        <span class="stat" style="margin-right:12px;">Cargo <b id="cargoStat">0</b>/<b id="cargoMaxStat">40</b></span>
+        <button id="muteBtn" onclick="toggleMute()" title="Mute music &amp; sound">🔊</button>
       </div>
     </div>
   </div>
@@ -223,6 +231,175 @@ function seededRandomFactory(seed){
   let s = seed % 2147483647; if (s<=0) s += 2147483646;
   return function(){ s = (s*16807) % 2147483647; return (s-1)/2147483646; };
 }
+
+//////////////////////// AUDIO ENGINE (synthesized — no external files) ////////////////////////
+const audio = {
+  ctx:null, master:null, music:null, sfx:null, muted:false,
+  mood:'calm', desiredMood:'calm', step:0, nextNoteTime:0, timerId:null,
+};
+
+// D natural-minor-ish set (semitones from base), gives everything a nautical/jig flavor
+const MUSIC_PATTERNS = {
+  calm: {
+    tempo: 108,
+    melody: [0,2,3,5, 3,2,0,null, 5,7,8,7, 5,3,2,null],
+    bass:   [0,null,0,null, 5,null,5,null, 3,null,3,null, 0,null,0,null],
+    drums:  false,
+  },
+  battle: {
+    tempo: 156,
+    melody: [0,3,5,7, 5,3,0,3, 7,10,7,5, 3,0,3,5],
+    bass:   [0,0,5,5, 3,3,0,0, 7,7,5,5, 3,3,0,0],
+    drums:  true,
+  },
+};
+
+function noteFreq(semi){ return 146.83 * Math.pow(2, semi/12); } // D3 base
+
+function audioInit(){
+  if (audio.ctx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  audio.ctx = new AC();
+  audio.master = audio.ctx.createGain(); audio.master.gain.value = audio.muted ? 0 : 0.55;
+  audio.master.connect(audio.ctx.destination);
+  audio.music = audio.ctx.createGain(); audio.music.gain.value = 0.4; audio.music.connect(audio.master);
+  audio.sfx = audio.ctx.createGain(); audio.sfx.gain.value = 0.85; audio.sfx.connect(audio.master);
+  audio.nextNoteTime = audio.ctx.currentTime + 0.1;
+  scheduleMusic();
+}
+
+function toggleMute(){
+  audio.muted = !audio.muted;
+  document.getElementById('muteBtn').textContent = audio.muted ? '🔇' : '🔊';
+  if (!audio.ctx) { if (!audio.muted) audioInit(); return; }
+  audio.master.gain.linearRampToValueAtTime(audio.muted ? 0 : 0.55, audio.ctx.currentTime + 0.15);
+}
+
+function playTone(freq, time, dur, type, dest, vol){
+  const osc = audio.ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, time);
+  const g = audio.ctx.createGain();
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(vol, time+0.012);
+  g.gain.exponentialRampToValueAtTime(0.001, time+dur);
+  osc.connect(g); g.connect(dest);
+  osc.start(time); osc.stop(time+dur+0.03);
+  return osc;
+}
+
+function playSweep(freqFrom, freqTo, time, dur, type, dest, vol){
+  const osc = audio.ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freqFrom, time);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(20,freqTo), time+dur);
+  const g = audio.ctx.createGain();
+  g.gain.setValueAtTime(vol, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time+dur);
+  osc.connect(g); g.connect(dest);
+  osc.start(time); osc.stop(time+dur+0.03);
+}
+
+function playNoise(time, dur, dest, vol, filterFreq, filterType){
+  const bufferSize = Math.max(1, Math.floor(audio.ctx.sampleRate * dur));
+  const buffer = audio.ctx.createBuffer(1, bufferSize, audio.ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+  const src = audio.ctx.createBufferSource(); src.buffer = buffer;
+  const filt = audio.ctx.createBiquadFilter();
+  filt.type = filterType || 'lowpass';
+  filt.frequency.value = filterFreq || 4000;
+  const g = audio.ctx.createGain(); g.gain.value = vol;
+  src.connect(filt); filt.connect(g); g.connect(dest);
+  src.start(time);
+}
+
+function scheduleStep(step, time){
+  const pat = MUSIC_PATTERNS[audio.mood];
+  const melSemi = pat.melody[step];
+  if (melSemi !== null) playTone(noteFreq(melSemi+12), time, 0.22, 'triangle', audio.music, 0.16);
+  const bassSemi = pat.bass[step];
+  if (bassSemi !== null) playTone(noteFreq(bassSemi-12), time, 0.34, 'sawtooth', audio.music, 0.10);
+  if (pat.drums && step%4===0) playNoise(time, 0.12, audio.music, 0.22, 1400, 'lowpass');
+  if (pat.drums && (step===4||step===12)) playNoise(time, 0.09, audio.music, 0.18, 6000, 'highpass');
+}
+
+function scheduleMusic(){
+  if (!audio.ctx) return;
+  while (audio.nextNoteTime < audio.ctx.currentTime + 0.1){
+    if (audio.step === 0) audio.mood = audio.desiredMood;
+    scheduleStep(audio.step, audio.nextNoteTime);
+    const pat = MUSIC_PATTERNS[audio.mood];
+    audio.nextNoteTime += 60/pat.tempo/2;
+    audio.step = (audio.step+1) % 16;
+  }
+  audio.timerId = setTimeout(scheduleMusic, 25);
+}
+
+// ---- sound effects, called from gameplay code ----
+function sfxCannon(){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  playNoise(t, 0.28, audio.sfx, 0.5, 900, 'lowpass');
+  playTone(70, t, 0.22, 'sine', audio.sfx, 0.35);
+}
+function sfxHit(heavy){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  playNoise(t, heavy?0.3:0.16, audio.sfx, heavy?0.5:0.3, heavy?600:2200, 'lowpass');
+}
+function sfxSink(isPlayer){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  playSweep(isPlayer?300:220, 40, t, isPlayer?1.6:0.9, 'sawtooth', audio.sfx, isPlayer?0.4:0.3);
+  playNoise(t+0.05, 0.5, audio.sfx, 0.3, 500, 'lowpass');
+}
+function sfxClash(){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  playNoise(t, 0.1, audio.sfx, 0.35, 7000, 'highpass');
+  playTone(1800, t, 0.08, 'square', audio.sfx, 0.12);
+}
+function sfxMiss(){
+  if (!audio.ctx) return;
+  playSweep(500, 200, audio.ctx.currentTime, 0.15, 'sine', audio.sfx, 0.15);
+}
+function sfxCoin(){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  playTone(1600, t, 0.09, 'square', audio.sfx, 0.15);
+  playTone(2200, t+0.06, 0.12, 'square', audio.sfx, 0.15);
+}
+function sfxDock(){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  playTone(900, t, 0.3, 'sine', audio.sfx, 0.2);
+  playTone(1350, t+0.02, 0.3, 'sine', audio.sfx, 0.12);
+}
+function sfxVictory(){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  [0,4,7,12].forEach((semi,i)=> playTone(noteFreq(semi), t+i*0.11, 0.3, 'triangle', audio.sfx, 0.22));
+}
+function sfxDefeat(){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  [0,-2,-4,-7].forEach((semi,i)=> playTone(noteFreq(semi-12), t+i*0.16, 0.4, 'sawtooth', audio.sfx, 0.2));
+}
+function sfxClick(){
+  if (!audio.ctx) return;
+  playTone(700, audio.ctx.currentTime, 0.05, 'square', audio.sfx, 0.08);
+}
+function sfxWedding(){
+  if (!audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  [0,4,7,12,16].forEach((semi,i)=> playTone(noteFreq(semi+12), t+i*0.14, 0.35, 'triangle', audio.sfx, 0.18));
+}
+
+document.addEventListener('click', e=>{
+  if (e.target.closest && e.target.closest('button.pbtn')) sfxClick();
+});
 
 //////////////////////// CANVAS / RENDER SETUP ////////////////////////
 const canvas = document.getElementById('game');
@@ -412,6 +589,9 @@ class Ship {
       });
     }
     this.reload = 65;
+    if (game.player && (this===game.player || dist(this.x,this.y,game.player.x,game.player.y) < 900)){
+      sfxCannon();
+    }
     return true;
   }
 }
@@ -460,6 +640,8 @@ function logMsg(msg){
 
 //////////////////////// INIT PLAYER ////////////////////////
 function startGame(){
+  audioInit();
+  if (audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume();
   document.getElementById('titleScreen').style.display='none';
   // place player near a friendly-ish port
   const startPort = ports[randi(0,ports.length-1)];
@@ -612,6 +794,9 @@ function damageShip(ship, dmg, attackerIsPlayer){
   ship.crew = Math.max(0, ship.crew - crewLoss);
   if (ship===game.player){
     flashDamage();
+    sfxHit(true);
+  } else if (dist(ship.x,ship.y,game.player.x,game.player.y) < 900){
+    sfxHit(false);
   }
   if (attackerIsPlayer && ship.fleetId){
     // the whole convoy rallies to defend an attacked fleet member
@@ -639,17 +824,23 @@ function damagePort(port, dmg){
   }
   if (port.hull<=0){
     logMsg(`The defenses of <b>${port.name}</b> lie in ruins! Sail close and press <b>B</b> to storm the town.`);
+    if (audio.ctx) playNoise(audio.ctx.currentTime, 0.5, audio.sfx, 0.4, 500, 'lowpass');
+  } else if (dist(port.x,port.y,game.player.x,game.player.y) < 900){
+    sfxHit(false);
   }
 }
 
 function onShipSunk(ship, byPlayer){
   if (ship === game.player){
+    sfxSink(true);
     endGame("Your ship, "+ship.name+", has been sent to the bottom of the sea by "+
       (ship._lastAttackerName||"an enemy vessel")+". Your voyage ends here.");
     return;
   }
+  sfxSink(false);
   game.npcShips = game.npcShips.filter(s=>s!==ship);
   if (byPlayer){
+    sfxCoin();
     const lootGold = randi(50, 60+ship.crewMax*8) + (ship.goldCargo||0);
     game.gold += lootGold;
     let lootedGoods = [];
@@ -861,6 +1052,10 @@ function update(dt){
     game._boardTarget = null;
   }
 
+  // switch the music mood in/out of "battle" based on nearby combat
+  const inCombat = game.npcShips.some(s=> s.aiState==='attack' && dist(s.x,s.y,p.x,p.y) < 700);
+  audio.desiredMood = inCombat ? 'battle' : 'calm';
+
   updateHud();
 }
 
@@ -870,6 +1065,7 @@ function tryDock(){
     game.dockedPort = game._nearPort;
     game.player.sailPower = 0;
     game.player.speed = 0;
+    sfxDock();
     openPortMenu(game.dockedPort);
   }
 }
@@ -919,12 +1115,14 @@ function openDuel(target){
   duelLog(isPort
     ? `You storm ashore and cross blades with the garrison commander of ${target.name}!`
     : `You leap aboard and cross blades with the captain of the ${target.name}!`);
+  if (audio.ctx) audio.music.gain.linearRampToValueAtTime(0.12, audio.ctx.currentTime+0.4);
 }
 
 function closeDuel(){
   duel.active = false;
   duel.enemy = null;
   document.getElementById('duelOverlay').style.display='none';
+  if (audio.ctx) audio.music.gain.linearRampToValueAtTime(0.4, audio.ctx.currentTime+0.6);
 }
 
 function updateDuel(dt){
@@ -956,8 +1154,10 @@ function playerDuelAttack(){
     duel.enemyResolve = Math.max(0, duel.enemyResolve-dmg);
     duel.flashE = 10;
     duelLog(`A solid hit! (&minus;${dmg})`);
+    sfxClash();
   } else {
     duelLog(duel.enemyGuard ? "The captain parries your blade!" : "Your thrust goes wide!");
+    duel.enemyGuard ? sfxClash() : sfxMiss();
   }
   checkDuelEnd();
 }
@@ -969,8 +1169,10 @@ function enemyDuelAttack(){
     duel.playerResolve = Math.max(0, duel.playerResolve-dmg);
     duel.flashP = 10;
     duelLog(`The enemy captain strikes! (&minus;${dmg})`);
+    sfxClash();
   } else {
     duelLog(duel.playerGuard ? "You parry the blow!" : "The enemy's strike misses!");
+    duel.playerGuard ? sfxClash() : sfxMiss();
   }
 }
 
@@ -1001,6 +1203,7 @@ function winDuel(){
   if (enemy.fleetId) game.reputation[enemy.nation] = clamp(game.reputation[enemy.nation]-5, -100, 100);
   logMsg(`You bested the captain of the <b>${enemy.name}</b> in a duel and captured the ship! `+
     `+${goldBonus}g${joined>0? ', '+joined+' crew joined you':''}${lootedGoods.length? ', plundered '+lootedGoods.join(', '):''}.`);
+  sfxVictory(); sfxCoin();
   closeDuel();
 }
 
@@ -1025,6 +1228,7 @@ function winTownDuel(){
   port.alerted = true;
   logMsg(`You stormed <b>${port.name}</b> and overcame its garrison! `+
     `+${goldBonus}g${lootedGoods.length? ', plundered '+lootedGoods.join(', '):''}${joined>0? ', '+joined+' recruits joined you':''}.`);
+  sfxVictory(); sfxCoin();
   closeDuel();
 }
 
@@ -1040,6 +1244,7 @@ function loseDuel(){
   enemy.aiState = 'patrol';
   p.x -= Math.cos(p.heading)*60; p.y -= Math.sin(p.heading)*60;
   logMsg(`You were bested in the duel and forced to retreat! Lost ${crewLoss} crew and ${goldLoss}g.`);
+  sfxDefeat();
   closeDuel();
 }
 
@@ -1053,6 +1258,7 @@ function loseTownDuel(){
   port.hull = Math.min(port.hullMax, port.hull + port.hullMax*0.3);
   p.x -= Math.cos(p.heading)*60; p.y -= Math.sin(p.heading)*60;
   logMsg(`The garrison of <b>${port.name}</b> repels your assault! Lost ${crewLoss} crew and ${goldLoss}g.`);
+  sfxDefeat();
   closeDuel();
 }
 
@@ -1430,6 +1636,7 @@ function tradeGood(portId, good, mode, qty){
     if (actual<=0){ openTrade(portId); return; }
     p.cargo[good] -= actual;
     game.gold += actual*pr.sell;
+    sfxCoin();
     logMsg(`Sold ${actual} ${good} for ${actual*pr.sell}g.`);
   }
   openTrade(portId);
@@ -1597,6 +1804,7 @@ function proposeMarriage(portId){
   document.getElementById('weddingGold').textContent = game.gold;
   document.getElementById('endingScreen').style.display = 'flex';
   game.started = false;
+  sfxWedding();
 }
 
 //////////////////////// SILVER TRAIN ////////////////////////
@@ -1629,11 +1837,13 @@ function raidSilverTrain(portId){
     p.crew = Math.max(1, p.crew-crewLoss);
     game.reputation[port.nation] = clamp(game.reputation[port.nation]-15, -100, 100);
     logMsg(`Your crew ambushes the silver train near <b>${port.name}</b>! Plundered ${gold}g, losing ${crewLoss} crew in the skirmish.`);
+    sfxCoin();
   } else {
     const crewLoss = randi(4,10);
     p.crew = Math.max(1, p.crew-crewLoss);
     game.reputation[port.nation] = clamp(game.reputation[port.nation]-8, -100, 100);
     logMsg(`The garrison of <b>${port.name}</b> was waiting for you! The raid fails — you lose ${crewLoss} crew fleeing back to your ship.`);
+    sfxDefeat();
   }
   game.silverTrainPort = null;
   game.silverTrainTimer = rand(150,260);
